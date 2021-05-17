@@ -1,0 +1,12 @@
+block_interval	2
+click_atten	30
+min_attn	0
+max_attn	6
+attn_int	3	
+min_delay	0.250
+max_delay	0.5
+noise_atten	60
+duration	10
+nReps	0
+nSpeakers	48
+valveTime	0.1	
