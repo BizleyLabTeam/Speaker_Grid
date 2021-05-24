@@ -42,7 +42,7 @@ log_name = sprintf('%sT%s_StimulusData.csv', datestr(now,'YYYY-mm-dd'), datestr(
 gf.dirs.log_file = fullfile(gf.dirs.stimData, log_name);
 fid = fopen( gf.dirs.log_file, 'wt+');
 
-headers = {'Global_Idx','Block','Local_Idx','Grid_x','Grid_y',...
+headers = {'Global_Idx','Block','Local_Idx','Speaker',...
            'Pulse_Chan','Pulse_Samp','Pulse_Time','EstimatedTimeOut'};
 fprintf(fid, '%s,', headers{1:end-1}); % Add column headers
 fprintf(fid, '%s\n', headers{end}); % Add column headers
