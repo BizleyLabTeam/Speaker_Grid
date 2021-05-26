@@ -22,11 +22,20 @@ end
 bb_x = rect(1) : (rect(1) + rect(3));
 bb_y = rect(2) : (rect(2) + rect(4));
 
+%% Load data
 
+% Video
 vid = VideoReader( fullfile(file_path, file_name));
+
+% Stimulus data
+stim_file = dir( fullfile( file_path, '*StimData_MCSAligned.csv'));
+stim_data = readtable( fullfile( file_path, stim_file(1).name), 'delimiter',',');
+
+
+%% Get mean intensity of box containing sync LED
 n_frames = ceil(vid.Duration * vid.FrameRate);
 sync_val = nan(n_frames, 1);
-sync_time = nan(n_frames, 1);
+frame_time = nan(n_frames, 1);
 
 idx = 0;
 while hasFrame(vid)
@@ -37,17 +46,14 @@ while hasFrame(vid)
     idx = idx + 1;
     
     sync_val(idx) = mean(frame(:));
-    sync_time(idx) = vid.CurrentTime;
+    frame_time(idx) = vid.CurrentTime;
 end
 
 sync_norm = sync_val > mean(sync_val);
-pulse_times = sync_time(sync_norm);
+pulse_times = frame_time(sync_norm);
 
 
-% Load behavioral data
-stim_file = dir( fullfile( file_path, '*StimData_MCSAligned.csv'));
-stim_data = readtable( fullfile( file_path, stim_file(1).name), 'delimiter',',');
-
+%% Estimate temporal alignment
 
 % Make an initial estimate of temporal alignment
 offset = -60 : 0.1 : 60;       
@@ -68,13 +74,58 @@ end
 
 final_estimate = offset(narrow_sweep == min(narrow_sweep));
 
-% Apply estimated correction for lag and plot
+
+%% Apply estimated correction for lag and plot
 stim_data.est_frame_time = stim_data.MCS_Time - final_estimate;
 
+t_delta = bsxfun(@minus, stim_data.est_frame_time, transpose(frame_time));
+t_delta = abs(t_delta);
+[min_delta, stim_data.closest_frame] = min(t_delta, [], 2);
+
+
+% Plot alignment and discrepancy count
 figure
+
+subplot(121)
 hold on
-scatter( pulse_times, ones(size(pulse_times)))
-scatter( stim_data.est_frame_time, 1+ones(size(stim_data, 1), 1))
+scatter( pulse_times, ones(size(pulse_times)), '.')
+scatter( stim_data.est_frame_time, 1+ones(size(stim_data, 1), 1), '.')
+xlabel('Video Time (s)')
+set(gca,'ycolor','none','ylim',[-5 9])
+legend 'Video Pulses' 'MCS Pulses'
+
+subplot(122)
+histogram(min_delta)
+xlabel('Pulse - Frame Discrepancy (t)')
+ylabel('Frames (n)')
+
+
+% Plot example frames
+frame_window = [-1 0 1];
+required_frames = bsxfun(@plus, stim_data.closest_frame, frame_window);
+
+vid = VideoReader( fullfile(file_path, file_name));
+k = 0;
+
+figure('color','k'); 
+for i = 1 : numel(frame_window)
+    for stim_idx = 1 : 100 : 501    
+        k = k + 1;
+        subplot(numel(frame_window),6,k)
+        frame = read(vid, required_frames(stim_idx,i));
+        
+        frame(bb_y, bb_x, :) = 0;   % Mask pulse
+        bW = rgb2gray(frame);
+        cF = conv2([-1 1 1 -1], [-1 1 1 -1], bW);   % Sharpen / Laplace
+        cF = conv2([0 1/2 1 1/1 0], [0 1/2 1 1/2 0], cF);        
+        
+        image(cF)
+    end
+end
+
+
+
+
 
 function est_error = get_align_error( pulse_times, stim_data, offset)
 
