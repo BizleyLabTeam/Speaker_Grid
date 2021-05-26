@@ -1,0 +1,92 @@
+function video_analysis(file_path, file_name)
+%
+% 
+%
+% Stephen Town - 26 May 2021
+
+% SETTINGS
+rerun_find_box = false;         % Slow, faster to use defined values
+
+% Request user input if no args
+if nargin == 0    
+    [file_name, file_path] = uigetfile('G:\UCL_Behaving\*');    
+end
+
+% Bounding box for sync LED
+if rerun_find_box
+    rect = find_bounding_box(file_path, file_name);
+else
+    rect = [87 457 12 15];
+end
+
+bb_x = rect(1) : (rect(1) + rect(3));
+bb_y = rect(2) : (rect(2) + rect(4));
+
+
+vid = VideoReader( fullfile(file_path, file_name));
+n_frames = ceil(vid.Duration * vid.FrameRate);
+sync_val = nan(n_frames, 1);
+sync_time = nan(n_frames, 1);
+
+idx = 0;
+while hasFrame(vid)
+        
+    frame = readFrame(vid);
+    frame = single(frame(bb_y, bb_x, :));
+ 
+    idx = idx + 1;
+    
+    sync_val(idx) = mean(frame(:));
+    sync_time(idx) = vid.CurrentTime;
+end
+
+sync_norm = sync_val > mean(sync_val);
+pulse_times = sync_time(sync_norm);
+
+
+% Load behavioral data
+stim_file = dir( fullfile( file_path, '*StimulusData.csv'));
+stim_data = readtable( fullfile( file_path, stim_file(1).name), 'delimiter',',');
+
+
+broad_sweep = nan(60,1);
+for offset = -60 : 0
+    broad_sweep
+
+
+
+
+
+function est_error = get_align_error( pulse_times, stim_data, offset)
+
+    delta = bsxfun(@minus, pulse_times + offset, stim_data.EstimatedTimeOut');
+    delta = abs(delta);
+
+    min_delta = min(delta, [], 2);
+
+    est_error = sum(min_delta);
+
+
+function rect = find_bounding_box(file_path)
+%
+%
+% Notes:
+% -----
+% Use filepath here to create new object as 'read' and 'readframes' don't
+% play nicely
+%
+% This isn't run on every video as the values provided in the main function
+% should be correct for most videos. However if recalibration is required,
+% this is how the values were created.
+
+vid = VideoReader( fullfile(file_path, file_name));
+frames = read(vid, [1 ceil(60*vid.FrameRate)]);
+
+max_fr = max(frames, [], 4);
+
+bb_fig = figure;
+image(max_fr)
+rect = getrect(bb_fig);
+rect = round(rect);
+
+

@@ -1,0 +1,16 @@
+block_interval	2
+click_atten	15
+duration	60
+min_attn	0
+max_attn	6
+attn_int	3	
+min_delay	0.4
+max_delay	0.9
+min_distance	0.3
+noise_atten	100
+nReps	0
+speaker_atten	[-9,-2,-10,-10.5,0,0,0,0,0,0,0,0]
+speakers	[44,43,29,30,7,8,9,10,17,18,39,40]
+target_distance	50
+target_level	70
+valveTime	0.1	
