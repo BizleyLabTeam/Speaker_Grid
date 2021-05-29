@@ -1,0 +1,34 @@
+{
+	"ferrets": ["F1810_Ursula",
+		"F1901_Crumble",
+		"F1902_Eclair"],
+	"output":{
+		"show_image": false,
+		"save_image": false,
+		"save_data": true},
+	"save_dir": {
+		"avi": "C:/Users/steph/Desktop/VideoTracking_Squid",
+		"csv": "C:/Users/steph/Desktop/VideoTracking_Squid"
+		},
+	"paths": {
+		"Metadata": "C:/Users/steph/CloudStation/Frontiers/Task Switching/Video Tracking/Metadata/video_metadata.csv"
+		},
+	"dirs": {
+		"Tanks": "G:/UCL_Behaving",
+		"Calib_Im": "G:/Jumbo_calibration_linked",
+		"FrameTimes": "C:/Users/steph/Desktop/FrameTimes",
+		"LED_positions": "C:/Users/steph/CloudStation/Frontiers/Task Switching/Video Tracking/First_Pass",
+		"StimTriggered": {
+			"Behavior": "C:/Users/steph/CloudStation/Frontiers/Task Switching/Video Tracking/StimTriggeredPositions",
+			"Traces": "C:/Users/steph/Desktop/StimTriggeredFrameVals"
+		},
+		"Behavior": {
+			"Original": "C:/Users/steph/CloudStation/Frontiers/Task Switching/Behavior/Original_Data",
+			"QualityControl": "C:/Users/steph/CloudStation/Frontiers/Task Switching/QualityControl/Trial Onset Verification/Behavior",
+			"VideoSynced": "C:/Users/steph/CloudStation/Frontiers/Task Switching/Video Tracking/Synced_Behavior"
+		}
+	},
+	"tdt_lib": "C:/Users/steph/Documents/MATLAB/TDTSDK",
+	"image_size":[640,480],
+	"quality_threshold": 0.01
+}
