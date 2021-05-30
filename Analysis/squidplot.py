@@ -15,6 +15,10 @@ rec_dir = '2021-05-27_Squid_15-57'
 
 stim_file = '2021-05-27T17-57-07_StimulusData.csv'
 
+
+
+
+
 def plot_raster(stim_data, spike_times):
 
     # Count spikes for each trial
