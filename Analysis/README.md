@@ -13,9 +13,13 @@ We then run **export_spike_data_for_py.m** to save the spike times stored in the
 
 Use **trackLEDs.m** to estimate the positions of red and blue LEDs in each video frame
 
+We then use the synchronization LED within the image to estimate the temporal alignment between video frames and stimulus pulses (**video_analysis.m**). Each stimulus generates an LED pulse, which may be detected by the camera or may be missed. The length of the pulse is designed to increase chances of a frame occuring, although this cannot be made too long or the pulse might cover multiple frames (and the longer the pulse is, the greater the uncertainty about the point in the pulse represented by the frame). The function returns a graph showing the loss function of the timelag parameter, for which we expect a global minima, as well as the distribution of time differences between pulse and 
+
 #### *Notes*
 
 Spike extraction here does not use any cleaning and so the data can look a little noisy. Future updates may add cleaning.
+
+With this camera, there are also steps we can take to make the tracking better (e.g. max saturation, play with brightness, contrast and gamma). We could also introduce some minor interpolation to pick up small runs in frames that the LEDs go out of view.
 
 Due to the size of files, videos and neural recording are not included in the repo.
 
