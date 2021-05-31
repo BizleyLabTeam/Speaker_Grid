@@ -18,7 +18,7 @@ for i = 1 : numel(ferrets)
     % Create target directory for ferret    
     if ~isfolder(f_tar_parent), mkdir(f_tar_parent); end
     
-    % For each recording file
+    % For each recording session
     for j = 1 : numel(rec_dirs)
         
         % Extend paths      
@@ -29,7 +29,11 @@ for i = 1 : numel(ferrets)
         res_files = dir( fullfile( rec_src_path, '*McsRecording*.mat'));        
         if numel(res_files) == 0, continue; end
         
-        if ~isfolder( rec_tar_path), mkdir( rec_tar_path); end
+        if isfolder( rec_tar_path)
+            continue;
+        else
+            mkdir( rec_tar_path); 
+        end
         
         % For each results file containing spike times
         for k = 1 : numel(res_files)
