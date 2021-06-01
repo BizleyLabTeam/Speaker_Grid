@@ -1,7 +1,18 @@
-function trackLEDs
+function track_LEDs_after_im_correct
+%
+% Obtain LED positions for specific frames after correcting for positive 
+% radial distortion of camera.
+%
+% Branched from trackLEDs.m on 01 June 2021
+
+
+% Load camera parameters from camera calibration 
+git_repo = 
+
+
 
 file_path = 'C:/Users/steph/Desktop/VideoTracking_Squid';
-files = dir( fullfile( file_path, '*.avi'));
+files = dir( fullfile( file_path, '2021-05-31*.avi'));
 
 for i = 1 : numel(files)
     
@@ -51,10 +62,8 @@ try
        end
     end
     
-    
-    config.x_pix = transpose(1 : obj.Width);
-    config.y_pix = transpose(1 : obj.Width);
-
+    config.x_pix = transpose(1 : 640);
+    config.y_pix = transpose(1 : 480);
     
     % For each chunk of frames    
     for frame = 1 : obj.NumFrames
@@ -98,39 +107,35 @@ try
         S.red_yc(frame) = red_cy(3);
         
         % Show if requested
-        if config.output.show_image || config.output.save_image                       
-            
-            blue_pos = [S.blue_x(frame) S.blue_y(frame)];
-            red_pos = [S.red_x(frame) S.red_y(frame)] ;
-            
-            rgb_im = insertMarker(rgb_im, blue_pos, 'x','color','c');
-            rgb_im = insertMarker(rgb_im, red_pos, 'x','color','y');            
-        end
+%         if config.output.show_image || config.output.save_image                       
+%             
+%             blue_pos = [S.blue_x(frame) S.blue_y(frame)];
+%             red_pos = [S.red_x(frame) S.red_y(frame)] ;
+%             
+%             rgb_im = insertMarker(rgb_im, blue_pos, 'x','color','c');
+%             rgb_im = insertMarker(rgb_im, red_pos, 'x','color','y');            
+%         end
         
-        if config.output.show_image, set(image_h, 'CData', rgb_im); end            
-        if config.output.save_image, writeVideo(out_obj, rgb_im); end
+%         if config.output.show_image, set(image_h, 'CData', rgb_im); end            
+%         if config.output.save_image, writeVideo(out_obj, rgb_im); end
     end
 
     % Close progress bar
     close(h)
     
     % Tidy up graphics objects (if requested)
-    if config.output.show_image        
-        if config.output.save_image
-            close(out_obj)
-        end        
-       close(fig)
-    end
+%     if config.output.show_image        
+%         if config.output.save_image
+%             close(out_obj)
+%         end        
+%        close(fig)
+%     end
           
-    % Write data if requested
-    if config.output.save_data
-       
-        T = struct2table(S);
-        file_name = replace(block.file_name{1},'.avi','.csv');
-        file_path = fullfile( config.save_dir.csv, file_name);
-        writetable(T, file_path, 'delimiter', ',')
-    end
-    
+    % Write data if requested       
+    T = struct2table(S);
+    file_name = replace(file_name,'.avi','.csv');
+    save_path = fullfile( file_path, file_name);
+    writetable(T, save_path, 'delimiter', ',')
     
 %     %% Supervision of thresholding (and intervention if necessary)
 %     

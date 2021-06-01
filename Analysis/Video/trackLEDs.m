@@ -1,7 +1,7 @@
 function trackLEDs
 
 file_path = 'C:/Users/steph/Desktop/VideoTracking_Squid';
-files = dir( fullfile( file_path, '*.avi'));
+files = dir( fullfile( file_path, '2021-05-31*.avi'));
 
 for i = 1 : numel(files)
     
