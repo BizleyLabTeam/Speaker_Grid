@@ -41,7 +41,7 @@ for i = 1 : numel(ferrets)
 end
 
 
-function main(sesh_path, cameraParms)
+function main(sesh_path, cameraParams)
 
 % SETTTINGS
 show_image = false;
@@ -54,7 +54,8 @@ show_image = false;
 stim_file = dir( fullfile( sesh_path, '*MCSVidAlign*'));
 
 if numel(stim_file) == 0
-    error('Could not find stimulus metadata')
+    fprintf('Could not find stimulus metadata in %s\n', sesh_path)
+    return
 else
     stim = readtable( fullfile( sesh_path, stim_file.name));
 end
@@ -63,9 +64,22 @@ end
 vid_file = dir( fullfile( sesh_path, '*.avi'));
 
 if numel( vid_file) == 0
-    error('Could not find video file')
+    fprintf('Could not find video file in %s\n', sesh_path)
+    return
 else
     obj = VideoReader( fullfile( sesh_path, vid_file.name));   
+end
+
+% Skip if already done
+vid_out_name = replace(vid_file.name,'.avi','.csv');
+vid_out_name = replace(vid_out_name,'SquidVid','CorrectedVid');
+save_path = fullfile( sesh_path, vid_out_name);
+
+if exist(save_path, 'file')
+    fprintf('%s already exists - skipping\n', vid_out_name)
+    return
+else
+    fprintf('%s in progress\n', vid_out_name)
 end
 
 
@@ -96,7 +110,7 @@ S = struct('frame', nan(n_frames, 1),...
 try
     
     % Set up progress report    
-    h  = waitbar(0, strrep(session,'_',' '));
+    h  = waitbar(0, strrep(vid_file.name,'_',' '));
     
     % Create graphics objects if requested
     if show_image
@@ -181,9 +195,6 @@ try
           
     % Write data if requested       
     T = struct2table(S);
-    vid_out_name = replace(vid_file.name,'.avi','.csv');
-    vid_out_name = replace(vid_out_name,'SquidVid','CorrectedVid');
-    save_path = fullfile( sesh_path, vid_out_name);
     writetable(T, save_path, 'delimiter', ',')
     
 %     %% Supervision of thresholding (and intervention if necessary)

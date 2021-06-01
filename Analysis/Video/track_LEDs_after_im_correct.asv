@@ -3,6 +3,10 @@ function track_LEDs_after_im_correct(ferret, session)
 % Obtain LED positions for specific frames after correcting for positive 
 % radial distortion of camera.
 %
+% Required data:
+%   - video file
+%   - stimulus metadata with closest frames
+%
 % Branched from trackLEDs.m on 01 June 2021
 
 % Default arguments
@@ -11,12 +15,8 @@ if nargin == 0
     session = '2021-05-27_Squid_15-57';
 end
 
-% SETTTINGS
-show_image = false;
+
 git_repo = 'C:\Users\steph\Documents\GitHub\Speaker_Grid';
-
-
-%% Load inputs
 
 % Camera parameters from camera calibration 
 calib_path = fullfile( git_repo, 'calibrations');
@@ -24,12 +24,38 @@ calib_file = 'CalibResults_2021_05_31.mat';
 
 load( fullfile(calib_path, calib_file), 'cameraParams')
 
+% List ferrets
+data_path = fullfile( git_repo, 'data');
+
+ferrets = dir( fullfile( data_path ,'F*'));
+for i = 1 : numel(ferrets)
+
+    ferret_path = fullfile( data_path, ferrets(i).name);
+    sessions = dir( fullfile( ferret_path, '*Squid*'));
+    
+    for j = 1 : numel(sessions)
+        
+        sesh_path = fullfile( ferret_path, sessions(j).name);
+        main(sesh_path, cameraParams)
+    end        
+end
+
+
+function main(sesh_path, cameraParms)
+
+% SETTTINGS
+show_image = false;
+
+
+
+%% Load session data
+
 % Stimulus frames
-sesh_path = fullfile( git_repo, 'data', ferret, session);
 stim_file = dir( fullfile( sesh_path, '*MCSVidAlign*'));
 
 if numel(stim_file) == 0
-    error('Could not find stimulus metadata')
+    fprintf('Could not find stimulus metadata in %s\n', sesh_path)
+    return
 else
     stim = readtable( fullfile( sesh_path, stim_file.name));
 end
@@ -38,9 +64,22 @@ end
 vid_file = dir( fullfile( sesh_path, '*.avi'));
 
 if numel( vid_file) == 0
-    error('Could not find video file')
+    fprintf('Could not find video file in %s\n', sesh_path)
+    return
 else
     obj = VideoReader( fullfile( sesh_path, vid_file.name));   
+end
+
+% Skip if already done
+vid_out_name = replace(vid_file.name,'.avi','.csv');
+vid_out_name = replace(vid_out_name,'SquidVid','CorrectedVid');
+save_path = fullfile( sesh_path, vid_out_name);
+
+if exist(save_path, 'file')
+    fprintf('%s already exists - skipping\n', vid_out_name)
+    return
+else
+    fprintf('%s already exists - skipping\n', vid_out_name)
 end
 
 
@@ -99,7 +138,7 @@ try
         rgb_im = read(obj, frames(i));        
         S.frame(i) = frames(i);
         
-        % Apply correction for radial distortion        
+        % Apply corrections for image size (ffs!) and radial distortion        
         rgb_im = rgb_im(config.y_pix, config.x_pix, :);
         rgb_im = undistortFisheyeImage(rgb_im, cameraParams.Intrinsics);
         
@@ -108,8 +147,8 @@ try
         red_IM = rgb_im(:,:,1) - rgb_im(:,:,2) - rgb_im(:,:,3);         
         
         % Find max values
-        S.blue_peak(frame) = max(blue_IM(:));
-        S.red_peak(frame) = max(red_IM(:));
+        S.blue_peak(i) = max(blue_IM(:));
+        S.red_peak(i) = max(red_IM(:));
                                    
         % Get LED centroids
         [blue_cx, blue_cy] = get_centroid2(blue_IM, config);
@@ -156,9 +195,6 @@ try
           
     % Write data if requested       
     T = struct2table(S);
-    vid_out_name = replace(vid_file.name,'.avi','.csv');
-    vid_out_name = replace(vid_out_name,'SquidVid','CorrectedVid');
-    save_path = fullfile( sesh_path, vid_out_name);
     writetable(T, save_path, 'delimiter', ',')
     
 %     %% Supervision of thresholding (and intervention if necessary)
