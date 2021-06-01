@@ -5,11 +5,10 @@ function track_LEDs_after_im_correct
 %
 % Branched from trackLEDs.m on 01 June 2021
 
-ferret = 'F1901_Crumble_Squid';
-session = '2021-05-27_Squid_15-57';
+ferret = 'F1901_Crumble
+
 
 git_repo = 'C:\Users\steph\Documents\GitHub\Speaker_Grid';
-vid_path = 'C:\Users\steph\Desktop\VideoTracking_Squid';    % Videos too large
 
 % Load camera parameters from camera calibration 
 calib_path = fullfile( git_repo, 'calibrations');
@@ -17,17 +16,9 @@ calib_file = 'CalibResults_2021_05_31.mat';
 
 load( fullfile(calib_path, calib_file), cameraParams)
 
+
 % Load stimulus frames
-stim_path = fullfile( git_repo, 'data', ferret, session);
-stim_file = dir( fullfile( stim_path, '*MCSVidAlign*'));
-
-if numel(stim_file) == 0
-    error('Could not find stimulus metadata')
-else
-    stim = load( fullfile( stim_path, stim_file.name));
-end
-
-% Connect to video
+stim_path = fullfile( git_repo
 
 
 file_path = 'C:/Users/steph/Desktop/VideoTracking_Squid';

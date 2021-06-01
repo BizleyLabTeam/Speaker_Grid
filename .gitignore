@@ -9,4 +9,6 @@ env.bak/
 venv.bak/
 *.pyc
 /*.pyc
+*.avi
+/*.avi
 __pycache__/
