@@ -1,74 +1,102 @@
-function track_LEDs_after_im_correct
+function track_LEDs_after_im_correct(ferret, session)
 %
 % Obtain LED positions for specific frames after correcting for positive 
 % radial distortion of camera.
 %
+% Required data:
+%   - video file
+%   - stimulus metadata with closest frames
+%
 % Branched from trackLEDs.m on 01 June 2021
 
-ferret = 'F1901_Crumble_Squid';
-session = '2021-05-27_Squid_15-57';
+% Default arguments
+if nargin == 0
+    ferret = 'F1901_Crumble_Squid';
+    session = '2021-05-27_Squid_15-57';
+end
+
 
 git_repo = 'C:\Users\steph\Documents\GitHub\Speaker_Grid';
-vid_path = 'C:\Users\steph\Desktop\VideoTracking_Squid';    % Videos too large
 
-% Load camera parameters from camera calibration 
+% Camera parameters from camera calibration 
 calib_path = fullfile( git_repo, 'calibrations');
 calib_file = 'CalibResults_2021_05_31.mat';
 
-load( fullfile(calib_path, calib_file), cameraParams)
+load( fullfile(calib_path, calib_file), 'cameraParams')
 
-% Load stimulus frames
-stim_path = fullfile( git_repo, 'data', ferret, session);
-stim_file = dir( fullfile( stim_path, '*MCSVidAlign*'));
+% List ferrets
+data_path = fullfile( git_repo, 'data');
+
+ferrets = dir( fullfile( data_path ,'F*'));
+for i = 1 : numel(ferrets)
+
+    ferret_path = fullfile( data_path, ferrets(i).name);
+    sessions = dir( fullfile( ferret_path, '*Squid*'));
+    
+    for j = 1 : numel(sessions)
+        
+        sesh_path = fullfile( ferret_path, sessions(j).name);
+        main(sesh_path, cameraParams)
+    end        
+end
+
+
+function main(sesh_path, cameraParms)
+
+% SETTTINGS
+show_image = false;
+
+
+
+%% Load session data
+
+% Stimulus frames
+stim_file = dir( fullfile( sesh_path, '*MCSVidAlign*'));
 
 if numel(stim_file) == 0
     error('Could not find stimulus metadata')
 else
-    stim = load( fullfile( stim_path, stim_file.name));
+    stim = readtable( fullfile( sesh_path, stim_file.name));
 end
 
-% Connect to video
+% Video
+vid_file = dir( fullfile( sesh_path, '*.avi'));
+
+if numel( vid_file) == 0
+    error('Could not find video file')
+else
+    obj = VideoReader( fullfile( sesh_path, vid_file.name));   
+end
 
 
-file_path = 'C:/Users/steph/Desktop/VideoTracking_Squid';
-files = dir( fullfile( file_path, '2021-05-31*.avi'));
+%% Run detection on each stimulus frame
 
-for i = 1 : numel(files)
+% Look at frame before and after target as well
+frames = bsxfun(@plus, [-1 0 1], stim.closest_frame);
+frames = unique(frames(:));
+n_frames = numel(frames);
+
+% Define arrays for output: 3 column tables
+S = struct('frame', nan(n_frames, 1),...
+    'blue_peak', nan(n_frames, 1),...
+    'blue_x', nan(n_frames, 1),...
+    'blue_y', nan(n_frames, 1),...
+    'blue_xa', nan(n_frames, 1),...
+    'blue_ya', nan(n_frames, 1),...
+    'blue_xc', nan(n_frames, 1),...
+    'blue_yc', nan(n_frames, 1),...    
+    'red_x', nan(n_frames, 1),...
+    'red_y', nan(n_frames, 1),...
+    'red_xa', nan(n_frames, 1),...
+    'red_ya', nan(n_frames, 1),...
+    'red_xc', nan(n_frames, 1),...
+    'red_yc', nan(n_frames, 1),...    
+    'red_peak', nan(n_frames, 1));    
     
-   main( file_path, files(i).name)
-end
-
-function main( file_path, file_name)
-
-show_image = false;
-
 try
-    % Check if this file has been processesd    
-%     if outputs_exist(block, config), return; end       
-        
-    fprintf('%s\n', file_name)
-    
-    % Open video object
-    obj = VideoReader( fullfile( file_path, file_name));   
-    
-    % Define arrays for output: 3 column tables
-    S = struct('blue_peak', nan(obj.NumFrames, 1),...
-                'blue_x', nan(obj.NumFrames, 1),...
-                'blue_y', nan(obj.NumFrames, 1),...
-                'blue_xa', nan(obj.NumFrames, 1),...
-                'blue_ya', nan(obj.NumFrames, 1),...
-                'blue_xc', nan(obj.NumFrames, 1),...
-                'blue_yc', nan(obj.NumFrames, 1),...    
-                'red_x', nan(obj.NumFrames, 1),...
-                'red_y', nan(obj.NumFrames, 1),...
-                'red_xa', nan(obj.NumFrames, 1),...
-                'red_ya', nan(obj.NumFrames, 1),...
-                'red_xc', nan(obj.NumFrames, 1),...
-                'red_yc', nan(obj.NumFrames, 1),...    
-                'red_peak', nan(obj.NumFrames, 1));    
     
     % Set up progress report    
-    h  = waitbar(0, strrep(file_name,'_',' '));
+    h  = waitbar(0, strrep(session,'_',' '));
     
     % Create graphics objects if requested
     if show_image
@@ -83,53 +111,54 @@ try
     
     config.x_pix = transpose(1 : 640);
     config.y_pix = transpose(1 : 480);
-    
+
     % For each chunk of frames    
-    for frame = 1 : obj.NumFrames
+    for i = 1 : n_frames
 
         % Report progress        
-        progress = frame / obj.NumFrames;
-        status = sprintf('Frame %d of %d', frame, obj.NumFrames);        
+        progress = i / n_frames;
+        status = sprintf('Frame %d of %d', i, n_frames);        
         waitbar(progress, h, status)
         
         % Load video
-        rgb_im = read(obj, frame);        
-        rgb_im = rgb_im(1:480, 1:640, :);   % Apply crop that vimba cam should have done!
+        rgb_im = read(obj, frames(i));        
+        S.frame(i) = frames(i);
+        
+        % Apply corrections for image size (ffs!) and radial distortion        
+        rgb_im = rgb_im(config.y_pix, config.x_pix, :);
+        rgb_im = undistortFisheyeImage(rgb_im, cameraParams.Intrinsics);
         
         % Weight in favor of signal channel and against other channels
         blue_IM = rgb_im(:,:,3) - rgb_im(:,:,2) - rgb_im(:,:,1);
         red_IM = rgb_im(:,:,1) - rgb_im(:,:,2) - rgb_im(:,:,3);         
         
         % Find max values
-        S.blue_peak(frame) = max(blue_IM(:));
-        S.red_peak(frame) = max(red_IM(:));
+        S.blue_peak(i) = max(blue_IM(:));
+        S.red_peak(i) = max(red_IM(:));
                                    
-        % get Centroid
-%         [blue_LED.x(frame), blue_LED.y(frame)] = getCentroid(blue_IM, blue_LED.peak(frame));
-%         [red_LED.x(frame), red_LED.y(frame)] = getCentroid(red_IM, red_LED.peak(frame)); 
-                
+        % Get LED centroids
         [blue_cx, blue_cy] = get_centroid2(blue_IM, config);
         [red_cx, red_cy] = get_centroid2(red_IM, config);
                 
-        S.blue_x(frame) = blue_cx(2);   % Position estimated
-        S.blue_y(frame) = blue_cy(2);        
-        S.blue_xa(frame) = blue_cx(1);  % Gaussian parameters for assessing fit
-        S.blue_ya(frame) = blue_cy(1);  
-        S.blue_xc(frame) = blue_cx(3);
-        S.blue_yc(frame) = blue_cy(3);
+        S.blue_x(i) = blue_cx(2);   % Position estimated
+        S.blue_y(i) = blue_cy(2);        
+        S.blue_xa(i) = blue_cx(1);  % Gaussian parameters for assessing fit
+        S.blue_ya(i) = blue_cy(1);  
+        S.blue_xc(i) = blue_cx(3);
+        S.blue_yc(i) = blue_cy(3);
                 
-        S.red_x(frame) = red_cx(2);
-        S.red_y(frame) = red_cy(2);             
-        S.red_xa(frame) = red_cx(1);
-        S.red_ya(frame) = red_cy(1);
-        S.red_xc(frame) = red_cx(3);
-        S.red_yc(frame) = red_cy(3);
+        S.red_x(i) = red_cx(2);
+        S.red_y(i) = red_cy(2);             
+        S.red_xa(i) = red_cx(1);
+        S.red_ya(i) = red_cy(1);
+        S.red_xc(i) = red_cx(3);
+        S.red_yc(i) = red_cy(3);
         
         % Show if requested
 %         if config.output.show_image || config.output.save_image                       
 %             
-%             blue_pos = [S.blue_x(frame) S.blue_y(frame)];
-%             red_pos = [S.red_x(frame) S.red_y(frame)] ;
+%             blue_pos = [S.blue_x(i) S.blue_y(i)];
+%             red_pos = [S.red_x(i) S.red_y(i)] ;
 %             
 %             rgb_im = insertMarker(rgb_im, blue_pos, 'x','color','c');
 %             rgb_im = insertMarker(rgb_im, red_pos, 'x','color','y');            
@@ -152,8 +181,9 @@ try
           
     % Write data if requested       
     T = struct2table(S);
-    file_name = replace(file_name,'.avi','.csv');
-    save_path = fullfile( file_path, file_name);
+    vid_out_name = replace(vid_file.name,'.avi','.csv');
+    vid_out_name = replace(vid_out_name,'SquidVid','CorrectedVid');
+    save_path = fullfile( sesh_path, vid_out_name);
     writetable(T, save_path, 'delimiter', ',')
     
 %     %% Supervision of thresholding (and intervention if necessary)
