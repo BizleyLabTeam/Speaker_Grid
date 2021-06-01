@@ -4,12 +4,15 @@ function video_analysis(file_path, file_name)
 % using the stimulus time obtained from the MCS system (more reliable than
 % estimated time from Matlab during presentation)
 %
+% Parameters:
+% ---------
+%
 % Stephen Town - 26 May 2021
 
 % SETTINGS
 rerun_find_box = false;         % Slow, faster to use defined values
 
-% Request user input if no args
+% Request name of video file from user if no args
 if nargin == 0    
     [file_name, file_path] = uigetfile('G:\UCL_Behaving\*');    
 end
