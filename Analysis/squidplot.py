@@ -17,7 +17,52 @@ stim_file = '2021-05-27T17-57-07_StimulusData.csv'
 
 
 
+def plot_psth(stim, spikes, t_start=-0.1, t_end=0.41, bin_width=0.01, ax=None):
+    """
+    Description
+    
+    Parameters:
+    ----------
+    stim : pandas dataframe
+        Contains stimulus times in MCS_Time column (not very user friendly!)
+    spikes : numpy array
+        Array of spike times 
+    t_start : float
+        Start time for plotting the psth
+    t_end : float
+        End time for plotting the psth (remember that the last bin value won't be included)   
+    bin_width : float
+        Duration of each psth bin in which spikes are counted
+    ax : matplotlib axes
+        Axes to plot PSTH if already defined
+    
+    Returns:
+    --------
+    ax : matplotlib axes
+        Axes containing line plot of peri-stimulus time histogram
+    """
+    
+    bin_edges = np.arange(t_start, t_end, bin_width)
+    spike_count = np.zeros((stim.shape[0], len(bin_edges)-1), dtype=np.int64)
 
+    for idx, row  in stim.iterrows():
+
+        t_delta = spikes - row['MCS_Time']
+
+        spike_count[idx], _ = np.histogram(t_delta, bins=bin_edges)
+
+    spike_rate = spike_count / bin_width
+    mean_sr = np.mean(spike_rate, axis=0)
+    bin_centers = bin_edges[0:-1] + (bin_width/2)
+
+    if ax is None:
+        _, ax = plt.subplots(1,1)
+
+    ax.plot(bin_centers, mean_sr)
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Spikes / s')
+
+    return ax
 
 def plot_raster(stim_data, spike_times):
 

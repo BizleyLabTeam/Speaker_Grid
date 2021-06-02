@@ -1,10 +1,14 @@
-"""# The purpose of this notebook is to get the head position and direction of the ferret for each stimulus presentation.
+"""
+
+# The purpose of this notebook is to get the head position and direction of the ferret for each stimulus presentation.
  
 Input data comes from three sources:
 (1) Stimulus metadata after temporal alignment to both video and neural recording systems
 (2) LED tracking data
 (3) Speaker positions in grid
 
+See also:
+    notebooks/combine_head_n_stimulus_loc.ipynb
 
 Created:
     2021-06-01 by Stephen Town
@@ -73,7 +77,7 @@ def merge_stim_and_tracking_data(stim, LEDs):
     offset = -(np.pi/2)             # rotate cw by 90 degrees to get midline pointing forwards (anterior) on the head
     join_data['head_angle'] = np.arctan2(join_data['blue_zero_y'], join_data['blue_zero_x']) + offset
 
-    join_data['head_angle'].apply(wrap_to_pi)
+    join_data['head_angle'] = join_data['head_angle'].apply(wrap_to_pi)
 
     join_data.dropna(inplace=True)
     join_data.reset_index(inplace=True)
