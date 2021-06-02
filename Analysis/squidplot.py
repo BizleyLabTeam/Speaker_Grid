@@ -62,7 +62,7 @@ def plot_psth(stim, spikes, ax=None, t_start=-0.1, t_end=0.41, bin_width=0.01):
     # ax.set_xlabel('Time')
     # ax.set_ylabel('Spikes / s')
 
-    return ax
+    return bin_centers, mean_sr
 
 def plot_raster(stim_data, spike_times):
 
