@@ -54,7 +54,7 @@ def main():
 
 def plot_array_psth():
     
-    data_dir = Path('/home/stephen/Github/Speaker_Grid/data/F1902_Eclair_Squid')    
+    data_dir = Path('/home/stephen/Github/Speaker_Grid/data/F1810_Ursula_Squid')    
 
     # For each recording session
     for stim_file in data_dir.rglob('*Stim_LED_MCS.csv'):        
