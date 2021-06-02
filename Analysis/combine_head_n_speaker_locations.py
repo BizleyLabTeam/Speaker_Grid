@@ -76,7 +76,6 @@ def merge_stim_and_tracking_data(stim, LEDs):
 
     offset = -(np.pi/2)             # rotate cw by 90 degrees to get midline pointing forwards (anterior) on the head
     join_data['head_angle'] = np.arctan2(join_data['blue_zero_y'], join_data['blue_zero_x']) + offset
-
     join_data['head_angle'] = join_data['head_angle'].apply(wrap_to_pi)
 
     join_data.dropna(inplace=True)

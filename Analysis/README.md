@@ -15,6 +15,14 @@ Use **trackLEDs.m** to estimate the positions of red and blue LEDs in each video
 
 We then use the synchronization LED within the image to estimate the temporal alignment between video frames and stimulus pulses (**video_analysis.m**). Each stimulus generates an LED pulse, which may be detected by the camera or may be missed. The length of the pulse is designed to increase chances of a frame occuring, although this cannot be made too long or the pulse might cover multiple frames (and the longer the pulse is, the greater the uncertainty about the point in the pulse represented by the frame). The function returns a graph showing the loss function of the timelag parameter, for which we expect a global minima, as well as the distribution of time differences between pulse and 
 
+
+
+
+### Step 3: Estimating head pose and relative speaker position
+
+**combine_head_n_speaker_locations.py**
+
+
 #### *Notes*
 
 Spike extraction here does not use any cleaning and so the data can look a little noisy. Future updates may add cleaning.

@@ -9,17 +9,17 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-repo_dir = Path('/home/stephen/Github/Speaker_Grid/data/')
-ferret = 'F1901_Crumble_Squid'
-rec_dir = '2021-05-27_Squid_15-57'
+# repo_dir = Path('/home/stephen/Github/Speaker_Grid/data/')
+# ferret = 'F1901_Crumble_Squid'
+# rec_dir = '2021-05-27_Squid_15-57'
 
-stim_file = '2021-05-27T17-57-07_StimulusData.csv'
+# stim_file = '2021-05-27T17-57-07_StimulusData.csv'
 
 
 
-def plot_psth(stim, spikes, t_start=-0.1, t_end=0.41, bin_width=0.01, ax=None):
+def plot_psth(stim, spikes, ax=None, t_start=-0.1, t_end=0.41, bin_width=0.01):
     """
-    Description
+    Plots spike rate vs time across all stimuli
     
     Parameters:
     ----------
@@ -59,8 +59,8 @@ def plot_psth(stim, spikes, t_start=-0.1, t_end=0.41, bin_width=0.01, ax=None):
         _, ax = plt.subplots(1,1)
 
     ax.plot(bin_centers, mean_sr)
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Spikes / s')
+    # ax.set_xlabel('Time')
+    # ax.set_ylabel('Spikes / s')
 
     return ax
 
