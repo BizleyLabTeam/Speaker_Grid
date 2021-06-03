@@ -10,7 +10,7 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Output, Input, State
 
 from app import app
-from apps import home, page1
+from apps import home, page1, page2
 
 
 # building the navigation bar
@@ -18,7 +18,8 @@ from apps import home, page1
 dropdown = dbc.DropdownMenu(
     children=[
         dbc.DropdownMenuItem("Home", href="/home"),
-        dbc.DropdownMenuItem("Spatial Receptive Fields", href="/page1"),        
+        dbc.DropdownMenuItem("Spatial Receptive Fields", href="/page1"),       
+        dbc.DropdownMenuItem("Array maps", href="/page2"),        
     ],
     nav = True,
     in_navbar = True,
@@ -80,6 +81,8 @@ app.layout = html.Div([
 def display_page(pathname):
     if pathname == '/page1':
         return page1.layout
+    if pathname == '/page2':
+        return page2.layout
     else:
         return home.layout
 
