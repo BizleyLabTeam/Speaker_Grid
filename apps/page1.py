@@ -68,6 +68,36 @@ def get_angular_histogram( vals, n_bins=12):
         return theta_centers, rho
 
 
+def bin_by_angle(df, tStr, yStr, n_bins=12):
+
+    interval = (2 * np.pi) / n_bins
+    theta_edges = np.linspace(-np.pi, np.pi, n_bins+1)
+    theta_centers = theta_edges[0:-1] + (interval / 2)
+    rho = np.zeros_like(theta_centers)
+
+    srf = []
+    for theta in theta_edges[0:-1]:
+
+        bin_data = df[(df[tStr] >= theta) & (df[tStr] < theta+interval)]
+
+        srf.append({
+            'theta': theta,
+            'theta_d': (theta / np.pi) * 180,
+            'mean_rate': bin_data[yStr].mean()
+        })
+
+        if abs(theta) == np.pi:         # Add wrap around circle
+            srf.append({
+                'theta': -theta,
+                'theta_d': (-theta / np.pi) * 180,
+                'mean_rate': bin_data[yStr].mean()
+            })  
+    
+    srf = pd.DataFrame(srf)
+    srf.sort_values(by='theta', inplace=True)
+
+    return srf
+
 def plot_psth(stim, spikes, t_start=-0.1, t_end=0.41, bin_width=0.01):
     """
     Plots spike rate vs time across all stimuli
@@ -107,8 +137,6 @@ def plot_psth(stim, spikes, t_start=-0.1, t_end=0.41, bin_width=0.01):
     bin_centers = bin_edges[0:-1] + (bin_width/2)
 
     return px.line(x=bin_centers, y=mean_sr, title='Firing Rate vs. Time')
-
-    
 
 
 
@@ -167,7 +195,7 @@ layout = html.Div(
                             dcc.Dropdown(
                                 id="chan-filter",
                                 options=chan_list,
-                                value=chan_list[0]['value'],
+                                value=chan_list[16]['value'],
                                 className="dropdown",
                             ),
                         ],
@@ -230,7 +258,34 @@ layout = html.Div(
                     ])                                                
                 ], className="wrapper",
             ), 
-            # Row 5 PSTHs and SRFs
+            # Row 5 - Range slider test
+            html.Div(
+                children=[
+                    dbc.Row([
+                        dbc.Col([
+                            dcc.Markdown("Select Distance Range (px):")
+                        ],
+                        width=2.5,
+                        ),
+                        dbc.Col([
+                            dcc.RangeSlider(
+                                id='distance_range',
+                                min=0,
+                                max=600,
+                                step=1,
+                                marks={0:'0', 200:'200', 400:'400', 600:'600'},
+                                value=[0, 600]
+                            )
+                        ],
+                        width=3,
+                        ),
+                    ],
+                    no_gutters=True,
+                    justify="center")                    
+                ],
+                className='wrapper'
+            ),
+            # Row 6 PSTHs and SRFs
             html.Div([
                 dbc.Row([
                     dbc.Col([
@@ -265,17 +320,19 @@ def update_session_list(value):
         Output("grid_image", "figure"),
         Output("head_direction_hist", "figure"),
         Output("stim_head_xy", "figure"),
-        Output("PSTH", "figure")
+        Output("PSTH", "figure"),
+        Output("SRF", "figure")
         ],
     [
         Input('session-filter', 'value'),
         Input('scatter_check', 'value'),
         Input('chan-filter', 'value'),
         Input('calibrated_im', 'value'),
-        Input('speaker_color', 'value')
+        Input('speaker_color', 'value'),
+        Input('distance_range', 'value')
         ]
     )
-def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC):
+def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC, distRange):
     
     # Find a sample image for background
     if calib_opt == 'Calibrated':
@@ -289,6 +346,9 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC):
     stim = pd.read_csv(str(stim_file))
     
     stim[chan] = stim[chan] / 0.05  # Count to rate conversion
+
+    # Filter behavioral data for distance
+    stim = stim[(stim['h2s_distance'] >= distRange[0]) & (stim['h2s_distance'] < distRange[1])]
 
     # Extract speaker locations
     speakers = []
@@ -315,7 +375,6 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC):
         marker_dict['colorscale'] = 'Plasma' 
         marker_dict['colorbar'] = {'title':'Mean Rate','x':1.15}
     
-
     fig.add_trace(
         go.Scatter(
             x=speakers['x'], 
@@ -352,6 +411,14 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC):
         showlegend=False,
         coloraxis_showscale=True)
 
+    # Draw PSTH
+    psth_file = str(stim_file).replace('StimSpikeCounts','PSTH')
+    psth_df = pd.read_csv(psth_file)
+    
+    psth_df = psth_df[psth_df['Chan'] == chan]
+
+    psth = px.line(psth_df,x='Time',y='MeanRate')
+
     # Draw distribution of head directions
     theta, rho = get_angular_histogram( stim['head_angle'].to_numpy())
 
@@ -384,7 +451,7 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC):
             r='h2s_distance',
             theta="h2s_theta_d",
             color='Speaker',
-            opacity=0.9,
+            opacity=0.7,
             color_continuous_scale=px.colors.sequential.Blues_r
             )
 
@@ -405,19 +472,20 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC):
         template=None,
         title='Stimulus position w.r.t. Head')
 
+    # Draw head-centred SRF
+    srf = bin_by_angle(stim, 'h2s_theta', chan)
 
-    # Draw PSTH
-    spike_dir = stim_file.parent / 'spike_times'    
+    srf_fig = px.line(srf, x='theta_d', y='mean_rate',
+        labels={
+            'theta_d': 'Sound angle w.r.t. Head',
+            'mean_rate': 'Spikes / s'})
+    
+    srf_fig.update_layout(
+        xaxis = dict(
+            tickmode='linear',
+            tick0 = -180,
+            dtick = 90)
+    )
 
-    if chan[0] == 'A':
-        search_str = "*SpikeTimes_C" + chan[1:] + '.txt'
-    elif chan[0] == 'B':
-        search_str = "*SpikeTimes_2_C" + chan[1:] + '.txt'
 
-    spike_file = next( spike_dir.glob(search_str))
-    spikes = pd.read_csv(str(spike_file))
-
-    psth = plot_psth(stim, spikes)
-
-
-    return [fig, head_angle_fig, head_stim_fig, psth]
+    return [fig, head_angle_fig, head_stim_fig, psth, srf_fig]

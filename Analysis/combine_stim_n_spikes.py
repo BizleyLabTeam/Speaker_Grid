@@ -44,10 +44,12 @@ def plot_array_psth():
             tvec, frate = sqp.plot_psth(stim, spikes, axs[mcs_chan-1])
             axs[mcs_chan-1].set_title(str(mcs_chan), fontsize=8)
 
-            psth_df.append({
-                'Chan': f"A{mcs_chan:02d}",
-                'MeanRate': frate
-            })            
+            for t, y in zip(tvec, frate):
+                psth_df.append({
+                    'Chan': f"A{mcs_chan:02d}",
+                    'Time': t,
+                    'MeanRate': y
+                })     
 
         save_path = Path(stim_file.parent) / (stim_file.stem + '_LHS.png')
         plt.savefig( str(save_path))
@@ -65,10 +67,12 @@ def plot_array_psth():
             tvec, frate = sqp.plot_psth(stim, spikes, axs[mcs_chan-1])
             axs[mcs_chan-1].set_title(str(mcs_chan), fontsize=8)
 
-            psth_df.append({
-                'Chan': f"B{mcs_chan:02d}",
-                'MeanRate': frate
-            })
+            for t, y in zip(tvec, frate):
+                psth_df.append({
+                    'Chan': f"B{mcs_chan:02d}",
+                    'Time': t,
+                    'MeanRate': y
+                })
 
         save_path = Path(stim_file.parent) / (stim_file.stem + '_RHS.png')
         plt.savefig( str(save_path))
