@@ -21,13 +21,18 @@ layout = html.Div([
                             children='Go to dashboards',
                             className="text-center"),
                             dbc.Row([
-                                dbc.Col(
+                                dbc.Col([
                                     dbc.Button(
                                         "Spatial Receptive Fields",
                                         href="/page1",
                                         color="primary"
                                         ),
-                                    className="mt-2"
+                                    dbc.Button(
+                                        "Array PSTHs",
+                                        href="/page2",
+                                        color="secondary"
+                                        )
+                                ],className="mt-2"
                                     ),
                                 ]),
                             ],

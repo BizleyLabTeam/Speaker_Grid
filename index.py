@@ -19,7 +19,7 @@ dropdown = dbc.DropdownMenu(
     children=[
         dbc.DropdownMenuItem("Home", href="/home"),
         dbc.DropdownMenuItem("Spatial Receptive Fields", href="/page1"),       
-        dbc.DropdownMenuItem("Array maps", href="/page2"),        
+        dbc.DropdownMenuItem("Array PSTHs", href="/page2"),        
     ],
     nav = True,
     in_navbar = True,

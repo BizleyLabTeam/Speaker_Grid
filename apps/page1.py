@@ -235,7 +235,7 @@ layout = html.Div(
                                             {'label': 'By speaker', 'value': 'BySpeaker'},
                                             {'label': 'By firing rate', 'value': 'ByRate'},                                        
                                         ],
-                                        value='BySpeaker',
+                                        value='ByRate',
                                         id="speaker_color"
                                     ),
                                 ]),
@@ -372,7 +372,7 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC, distRan
     elif speakerC == 'ByRate':
         marker_dict['color'] = speakers['firing_rate']
         marker_dict['showscale'] = True
-        marker_dict['colorscale'] = 'Plasma' 
+        marker_dict['colorscale'] = 'YlOrRd' 
         marker_dict['colorbar'] = {'title':'Mean Rate','x':1.15}
     
     fig.add_trace(
@@ -416,8 +416,35 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC, distRan
     psth_df = pd.read_csv(psth_file)
     
     psth_df = psth_df[psth_df['Chan'] == chan]
+    psth_ymax = psth_df['MeanRate'].max() * 1.2
 
-    psth = px.line(psth_df,x='Time',y='MeanRate')
+    psth = go.Figure()
+    
+    psth.add_trace(
+            go.Scatter(
+                x=[0, 0],
+                y=[0, psth_ymax],
+                mode = 'lines',
+                line=dict(
+                    color='darkgray'
+                )
+            )
+        )
+
+
+    psth.add_trace(
+        go.Scatter(
+            x=psth_df['Time'],
+            y=psth_df['MeanRate'],
+            fill = 'tozeroy'
+        )
+    )
+
+    psth.update_layout(showlegend=False)
+    psth.update_xaxes(title='Time post-stimulus (s)') 
+    psth.update_yaxes(title='Spikes / s', range=[0, psth_ymax]) 
+
+
 
     # Draw distribution of head directions
     theta, rho = get_angular_histogram( stim['head_angle'].to_numpy())
@@ -463,13 +490,20 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC, distRan
             color=chan,
             opacity=0.6,
             range_color=[0, 3*stim[chan].mean()],
-            color_continuous_scale=px.colors.sequential.Plasma
+            color_continuous_scale=px.colors.sequential.YlOrRd
             )
         
     head_stim_fig.update_layout(
         height=300,
         width=400,
         template=None,
+        polar = dict(
+            radialaxis = dict(
+                angle = 90,
+                showticklabels = False,
+                ticks = ''
+            ),
+        ),
         title='Stimulus position w.r.t. Head')
 
     # Draw head-centred SRF
@@ -484,7 +518,7 @@ def plot_behavioral_data(value, scatter_opts, chan, calib_opt, speakerC, distRan
         xaxis = dict(
             tickmode='linear',
             tick0 = -180,
-            dtick = 90)
+            dtick = 90),
     )
 
 
