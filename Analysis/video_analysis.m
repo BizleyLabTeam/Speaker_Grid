@@ -92,7 +92,10 @@ stim_data.est_frame_time = stim_data.MCS_Time - final_estimate;
 
 t_delta = bsxfun(@minus, stim_data.est_frame_time, transpose(frame_time));
 t_delta = abs(t_delta);
-[min_delta, stim_data.closest_frame] = min(t_delta, [], 2);
+[min_delta, min_idx] = min(t_delta, [], 2);
+
+stim_data.closest_frame = min_idx;
+stim_data.closest_frame_time = frame_time(min_idx);
 
 stim_save_file = replace( stim_file(1).name, 'MCSAligned','MCSVidAlign');
 writetable(stim_data, fullfile( file_path, stim_save_file), 'delimiter',',');
