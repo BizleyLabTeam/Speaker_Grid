@@ -16,11 +16,18 @@ Use **trackLEDs.m** to estimate the positions of red and blue LEDs in each video
 We then use the synchronization LED within the image to estimate the temporal alignment between video frames and stimulus pulses (**video_analysis.m**). Each stimulus generates an LED pulse, which may be detected by the camera or may be missed. The length of the pulse is designed to increase chances of a frame occuring, although this cannot be made too long or the pulse might cover multiple frames (and the longer the pulse is, the greater the uncertainty about the point in the pulse represented by the frame). The function returns a graph showing the loss function of the timelag parameter, for which we expect a global minima, as well as the distribution of time differences between pulse and 
 
 
-
-
 ### Step 3: Estimating head pose and relative speaker position
 
-**combine_head_n_speaker_locations.py**
+**[combine_head_n_speaker_locations.py](./combine_head_n_speaker_locations.py)**
+
+For each session, this takes in a csv table (**{Datetime}_StimData_MCSVidAlign.csv** [[example]](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/2021-05-27T18-38-30_StimData_MCSVidAlign.csv)) and generates a new table (**{Datetime}_Stim_LED_MCS.csv** [[example]](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/2021-05-27T18-38-30_Stim_LED_MCS.csv)) that contains additional columns for LED positions, estimated head position and angle between head and speaker. 
+
+
+### Step 4: Count spikes after each
+
+**[combine_stim_n_spikes.py](./combine_stim_n_spikes.py)**
+
+Takes in the data generated in step 3 (files with name like **{Datetime}_Stim_LED_MCS.csv** [[example]](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/2021-05-27T18-38-30_Stim_LED_MCS.csv)) and generates csv tables with spike counts for every channel of recorded data with (**{Datetime}_StimSpikeCounts.csv** [[example]](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/2021-05-27T18-38-30_StimSpikeCounts.csv)). Recorded data comes from both left and right headstages, as denoted by the prefix A or B, and channels are numbered according to the MCS system.
 
 
 #### *Notes*

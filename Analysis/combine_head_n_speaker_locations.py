@@ -1,6 +1,5 @@
 """
-
-# The purpose of this notebook is to get the head position and direction of the ferret for each stimulus presentation.
+Get the head position and direction of the ferret for each stimulus presentation.
  
 Input data comes from three sources:
 (1) Stimulus metadata after temporal alignment to both video and neural recording systems
