@@ -15,9 +15,11 @@ Data organized by subject and test session. Data types include:
 | psths | .csv / image | rudimentary plots of spiking activity after sound presentation (useful for checking synchronization of devices) |
 
 
-### Analysis
+### analysis
 
 Scripts to analyse data and plot results - see [documentation](./Analysis/README.md) for more details.
+
+---
 
 ### app / assets
 Dashboard components (ignore)
