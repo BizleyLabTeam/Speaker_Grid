@@ -2,14 +2,18 @@
 Draw LED positions for session
 
 """
-import os
+import os, sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from Analysis import position_analysis as pa
+
 # Load data
-led_path = "/home/stephen/Github/Speaker_Grid/data"
+led_path = "data/F1902_Eclair_Squid/2021-05-27_Squid_17-31"
 led_file = "2021-05-27_SquidVid_17_30_23.csv"
 df = pd.read_csv( os.path.join( led_path, led_file))
 
@@ -52,9 +56,6 @@ axs[1].imshow(np.log(dwell_time))
 
 plt.show()
 
-
-
-print(dwell_time.head(n=3))
 
 
 
