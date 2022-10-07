@@ -4,14 +4,14 @@
 
 Data is first exported from MCS format to HDF5 using MCS Data Manager.
 
-In matlab, we then extract spike times and obtain the time of stimulus presentation using **get_PSTHs_for_Recording.m**. MCS time is the time of stimulus presentation measured using the MCS clock (which is more accurate than the estimated presentation time made in Matlab). This will create a matlab file with spike times and other metadata associated with signal statistics (not of primary interest here). Also generated are summary peri-stimulus time histograms and rasters, that allow a quick assessment of recording quality and units of interest. 
+In matlab, we then extract spike times and obtain the time of stimulus presentation using **[get_PSTHs_for_Recording.m](./Neural/get_PSTHs_for_Recording.m)**. MCS time is the time of stimulus presentation measured using the MCS clock (which is more accurate than the estimated presentation time made in Matlab). This will create a matlab file with spike times and other metadata associated with signal statistics (not of primary interest here). Also generated are summary peri-stimulus time histograms and rasters, that allow a quick assessment of recording quality and units of interest. 
 
 We then run **[export_spike_data_for_py.m](./export_spike_data_for_py.m)** to save the spike times stored in the .mat file into something more python friendly (text files [[example](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/spike_times/2021-05-27T18-37-54_SpikeTimes_2_C01.txt)]) and copy the data into the github repo for analysis off site. 
 
 
 ### Step 2: LED tracking and synchronization
 
-Use **trackLEDs.m** to estimate the positions of red and blue LEDs in each video frame. This script is not part of the repo at the moment.
+Use **[trackLEDs.m](./Video/trackLEDs.m)** to estimate the positions of red and blue LEDs in each video frame. 
 
 **[video_analysis.m](./video_analysis.m)**
 

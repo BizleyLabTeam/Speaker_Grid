@@ -6,6 +6,9 @@ Data and code associated with pilot testing in the speaker grid - a large enviro
 
 ### Analysis
 
+### app / assets
+Dashboard components (ignore)
+
 ### **calibrations**
 Images and scripts used to map speaker positions to locations within videos, as well as correct images for fisheye distortion by camera.
 
