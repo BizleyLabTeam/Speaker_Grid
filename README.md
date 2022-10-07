@@ -4,10 +4,16 @@ Data and code associated with pilot testing in the speaker grid - a large enviro
 
 ## Get Started
 
-* Analysis
-* calibrations: images and scripts used to map speaker positions to locations within videos
-* data: data organized by subject and test session
-* GoFerret Squid: Data acquisition software written in Matlab.
+### Analysis
+
+### calibrations
+Images and scripts used to map speaker positions to locations within videos
+
+### data
+data organized by subject and test session
+
+### GoFerret Squid
+Data acquisition software written in Matlab.
 
 
 ## Mid-Grid Demo
