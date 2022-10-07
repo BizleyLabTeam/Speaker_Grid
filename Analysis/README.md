@@ -6,14 +6,21 @@ Data is first exported from MCS format to HDF5 using MCS Data Manager.
 
 In matlab, we then extract spike times and obtain the time of stimulus presentation using **get_PSTHs_for_Recording.m**. MCS time is the time of stimulus presentation measured using the MCS clock (which is more accurate than the estimated presentation time made in Matlab). This will create a matlab file with spike times and other metadata associated with signal statistics (not of primary interest here). Also generated are summary peri-stimulus time histograms and rasters, that allow a quick assessment of recording quality and units of interest. 
 
-We then run **export_spike_data_for_py.m** to save the spike times stored in the .mat file into something more python friendly (text files) and copy the data into the github repo for analysis off site. 
+We then run **[export_spike_data_for_py.m](./export_spike_data_for_py.m)** to save the spike times stored in the .mat file into something more python friendly (text files [[example](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/spike_times/2021-05-27T18-37-54_SpikeTimes_2_C01.txt)]) and copy the data into the github repo for analysis off site. 
 
 
 ### Step 2: LED tracking and synchronization
 
-Use **trackLEDs.m** to estimate the positions of red and blue LEDs in each video frame
+Use **trackLEDs.m** to estimate the positions of red and blue LEDs in each video frame. This script is not part of the repo at the moment.
 
-We then use the synchronization LED within the image to estimate the temporal alignment between video frames and stimulus pulses (**video_analysis.m**). Each stimulus generates an LED pulse, which may be detected by the camera or may be missed. The length of the pulse is designed to increase chances of a frame occuring, although this cannot be made too long or the pulse might cover multiple frames (and the longer the pulse is, the greater the uncertainty about the point in the pulse represented by the frame). The function returns a graph showing the loss function of the timelag parameter, for which we expect a global minima, as well as the distribution of time differences between pulse and 
+**[video_analysis.m](./video_analysis.m)**
+
+Takes as input csv files (**{Datetime}_StimData_MCSAligned.csv** [[example]](../data/F1901_Crumble_Squid/2021-05-31_Squid_17-09/2021-05-31T17-09-46_StimData_MCSAligned.csv)), which were previously named using the format {Datetime}_StimulusData.csv (but this now outdated).
+
+The script use the synchronization LED within the image to estimate the temporal alignment between video frames and stimulus pulses. Each stimulus generates an LED pulse, which may be detected by the camera or may be missed. The length of the pulse is designed to increase chances of a frame occuring, although this cannot be made too long or the pulse might cover multiple frames (and the longer the pulse is, the greater the uncertainty about the point in the pulse represented by the frame). 
+
+For every session, we return a new table (**{Datetime}_StimData_MCSVidAlign.csv** [[example]](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/2021-05-27T18-38-30_StimData_MCSVidAlign.csv)) and graph showing the loss function of the timelag parameter, for which we expect a global minima.
+
 
 
 ### Step 3: Estimating head pose and relative speaker position
