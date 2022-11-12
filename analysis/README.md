@@ -17,7 +17,7 @@ Use **[trackLEDs.m](./Video/trackLEDs.m)** to estimate the positions of red and 
 
 Takes as input csv files (**{Datetime}_StimData_MCSAligned.csv** [[example]](../data/F1901_Crumble_Squid/2021-05-31_Squid_17-09/2021-05-31T17-09-46_StimData_MCSAligned.csv)), which were previously named using the format {Datetime}_StimulusData.csv (but this now outdated).
 
-The script use the synchronization LED within the image to estimate the temporal alignment between video frames and stimulus pulses. Each stimulus generates an LED pulse, which may be detected by the camera or may be missed. The length of the pulse is designed to increase chances of a frame occuring, although this cannot be made too long or the pulse might cover multiple frames (and the longer the pulse is, the greater the uncertainty about the point in the pulse represented by the frame). 
+The script uses the synchronization LED within the image to estimate the temporal alignment between video frames and stimulus pulses. Each stimulus generates an LED pulse, which may be detected by the camera or may be missed. The length of the pulse is designed to increase chances of a frame occuring, although this cannot be made too long or the pulse might cover multiple frames (and the longer the pulse is, the greater the uncertainty about the point in the pulse represented by the frame). 
 
 For every session, we return a new table (**{Datetime}_StimData_MCSVidAlign.csv** [[example]](../data/F1810_Ursula_Squid/2021-05-27_Squid_18-38/2021-05-27T18-38-30_StimData_MCSVidAlign.csv)) and graph showing the loss function of the timelag parameter, for which we expect a global minima.
 
