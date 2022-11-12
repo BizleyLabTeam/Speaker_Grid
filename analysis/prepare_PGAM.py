@@ -74,12 +74,13 @@ def count_spikes(file_path:Path, bin_width:float) -> np.array:
 
     # Count spikes
     bin_edges = np.linspace(0.0, bin_width*n_timepoints, num=n_timepoints)
-    neu_names = []
-
-    for i, (chan_str, times) in enumerate(spike_times.items()):
+    
+    for chan_str, times in spike_times.items():
         
-        neu_names.append(chan_str)
-        spike_counts[:,i], _ = np.histogram(times, bins=bin_edges)
+        chan_num = int(chan_str[1:]) - 1    # change from one-based to zero-based
+        spike_counts[:,chan_num], _ = np.histogram(times, bins=bin_edges)
+
+    neu_names = [f"C{1+i:02d}" for i in range(n_neurons)]
 
     return spike_counts, neu_names
 
@@ -198,23 +199,71 @@ def process_session(session:Path, bin_width):
     spike_counts = spike_counts[idx.min():idx.max(),:]
     
     # Save for processing in Docker
+    output_file = session / 'example_pgam_data.npz'
     np.savez(
-        session / 'example_pgam_data.npz', 
+        output_file, 
         counts = spike_counts,
         variables = variables,
         variable_names = variable_names,
         neu_names = neu_names,
         neu_info = neu_info, 
         trial_ids = trial_ids)
+
+    return output_file
     
 
     
-    
+################################################
+# Managing multiple sessions
 
 
-def concat_sessions(session_data):
+
+def concat_sessions(data_dir, npz_files):
     """ Bring preprocessed data from multiple sessions together """
-    pass
+
+    counts, variables, trial_ids = [], [], []
+    max_trial = 0
+
+    # For each npz file (associated with one session)
+    for file_idx, npz_f in enumerate(npz_files):
+
+        data = np.load(npz_f, allow_pickle=True)
+
+        # Build lists for concatenration
+        counts.append(data['counts'])
+        variables.append(data['variables'])
+
+        trial_ids.append(data['trial_ids'] + max_trial)   # Avoid duplicating trial ids across sessions
+        max_trial += data['trial_ids'].max()
+
+        # Initialize names on first pass
+        if file_idx == 0:
+            variable_names = data['variable_names']
+            neu_names = data['neu_names']
+            neu_info = data['neu_info'].all()
+        
+        # Check for consistency on later passes
+        else:
+            assert all(variable_names == data['variable_names'])
+            assert all(neu_names == data['neu_names'])
+            assert neu_info == data['neu_info'].all()
+
+    # Concatenate lists
+    counts = np.concatenate(counts)
+    variables = np.concatenate(variables)
+    trial_ids = np.concatenate(trial_ids)
+
+    # Save for processing in Docker
+    output_file = data_dir / 'example_pgam_concatn.npz'
+    np.savez(
+        output_file, 
+        counts = counts,
+        variables = variables,
+        variable_names = variable_names,
+        neu_names = neu_names,
+        neu_info = neu_info, 
+        trial_ids = trial_ids)
+    
 
 ###################
 def main():
@@ -227,16 +276,18 @@ def main():
     data_path = Path.cwd() / 'data' / f"{ferret}_Squid"
 
     # Get data for each session tested
-    session_data = []
+    npz_files = []
 
     for session in data_path.glob('*Squid*'):
         
-        session_data.append(
+        print(session)
+
+        npz_files.append( 
             process_session(session, bin_width)
         )
 
     # Bring data together from multiple sessions
-    # concat_sessions(session_data)
+    concat_sessions(data_path, npz_files)
 
 
 if __name__ == '__main__':

@@ -10,6 +10,7 @@ venv.bak/
 *.pyc
 /*.pyc
 *.avi
+*.npz
 *.asv
 /*.avi
 __pycache__/
