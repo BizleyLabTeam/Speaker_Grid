@@ -40,7 +40,16 @@ def load_spike_times(file_path:Path) -> dict:
     for chan_file in file_path.glob('*.txt'):
 
         spike_times = np.genfromtxt(chan_file, delimiter=',')
-        chan_name = chan_file.stem[-3:]
+
+        # Tag the hemisphere from which this channel was recorded
+        if 'SpikeTimes_2_C' in chan_file.stem:
+            prefix = 'B'
+        elif 'SpikeTimes_C' in chan_file.stem:
+            prefix = 'A'
+        else:
+            prefix = 'Unknown'
+
+        chan_name = f"{prefix}{chan_file.stem[-2:]}"
 
         print(f"Loaded spikes for {chan_name}")
         output[chan_name] = spike_times
@@ -74,10 +83,12 @@ def count_spikes(file_path:Path, bin_width:float) -> np.array:
 
     # Count spikes
     bin_edges = np.linspace(0.0, bin_width*n_timepoints, num=n_timepoints)
+    chan_offsets = {'A':0, 'B':32}
     
     for chan_str, times in spike_times.items():
         
-        chan_num = int(chan_str[1:]) - 1    # change from one-based to zero-based
+        chan_num = int(chan_str[1:]) - 1            # change from one-based to zero-based
+        chan_num += chan_offsets[chan_str[0]]       # map channels from left (A) and right (B) headstages to different number ranges
         spike_counts[:,chan_num], _ = np.histogram(times, bins=bin_edges)
 
     neu_names = [f"C{1+i:02d}" for i in range(n_neurons)]
@@ -216,8 +227,6 @@ def process_session(session:Path, bin_width):
 ################################################
 # Managing multiple sessions
 
-
-
 def concat_sessions(data_dir, npz_files):
     """ Bring preprocessed data from multiple sessions together """
 
@@ -263,7 +272,75 @@ def concat_sessions(data_dir, npz_files):
         neu_names = neu_names,
         neu_info = neu_info, 
         trial_ids = trial_ids)
+
+
+###############################
+# configuration
+def creat_configuration(order:int, bin_width:float):
+    """ 
     
+    Args:
+        Order: number of coefficient of the polynomials that make up splines
+        bin_width: sample period in seconds
+    
+     """
+
+    return {
+        'blue_x' : {
+            'lam':10, 
+            'penalty_type': 'der', 
+            'der': 2, 
+            'knots': knots,
+            'order': order,
+            'is_temporal_kernel': False,
+            'is_cyclic': [False],
+            'knots_num': np.nan,
+            'kernel_length': np.nan,
+            'kernel_direction': np.nan,
+            'samp_period':bin_width 
+        },
+        'blue_y' : {
+            'lam':10, 
+            'penalty_type': 'der', 
+            'der': 2, 
+            'knots': knots,
+            'order':order,
+            'is_temporal_kernel': False,
+            'is_cyclic': [False],
+            'knots_num': np.nan,
+            'kernel_length': np.nan,
+            'kernel_direction': np.nan,
+            'samp_period':bin_width 
+        },
+        'click_sounds':
+        {
+            'lam':10,
+            'penalty_type':'der',
+            'der':2,
+            'knots': np.nan,
+            'order':order,
+            'is_temporal_kernel': True,
+            'is_cyclic': [False],
+            'knots_num': 10,
+            'kernel_length': 500,
+            'kernel_direction': 1,          # We expect sounds to elicit spikes, not the other way round (which would be -1)
+            'samp_period':bin_width 
+        },
+        'neuron_A':
+        {
+            'lam':10,
+            'penalty_type':'der',
+            'der':2,
+            'knots': np.nan,
+            'order':order,
+            'is_temporal_kernel': True,
+            'is_cyclic': [False],
+            'knots_num': 8,
+            'kernel_length': 201,
+            'kernel_direction': 1,
+            'samp_period':bin_width 
+        }
+    }
 
 ###################
 def main():
@@ -289,6 +366,16 @@ def main():
     # Bring data together from multiple sessions
     concat_sessions(data_path, npz_files)
 
+    # Prepare configuration (I have no idea what the hell I'm doing)
+    order = 4   # the order of the spline is the number of coefficient of the polynomials
+    
+    knots = np.hstack(([-5]*(order-1), np.linspace(-5,5,15),[5]*(order-1)))
+    knots = [float(k) for k in knots]
+
+    cov_dict = prepare_config(order, bin_width)
+
+    with open('config_example_data.yml', 'w') as outfile:
+        yaml.dump(cov_dict, outfile, default_flow_style=False)
 
 if __name__ == '__main__':
     main()
