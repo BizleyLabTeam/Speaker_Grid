@@ -24,6 +24,7 @@ import sys
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+import yaml
 
 sys.path.insert(0, str(Path.cwd()))
 from lib import utils
@@ -84,14 +85,15 @@ def count_spikes(file_path:Path, bin_width:float) -> np.array:
     # Count spikes
     bin_edges = np.linspace(0.0, bin_width*n_timepoints, num=n_timepoints)
     chan_offsets = {'A':0, 'B':32}
+    neu_names = ['' for i in range(len(spike_times))]
     
     for chan_str, times in spike_times.items():
         
         chan_num = int(chan_str[1:]) - 1            # change from one-based to zero-based
         chan_num += chan_offsets[chan_str[0]]       # map channels from left (A) and right (B) headstages to different number ranges
+        
         spike_counts[:,chan_num], _ = np.histogram(times, bins=bin_edges)
-
-    neu_names = [f"C{1+i:02d}" for i in range(n_neurons)]
+        neu_names[chan_num] += chan_str
 
     return spike_counts, neu_names
 
@@ -157,6 +159,10 @@ def process_headtrack(session:Path, sync_mdl, bin_width, n_timepoints):
     blue_x = np.interp(x=bin_centers, xp=df['MCS_time'].to_numpy(), fp=df['blue_LEDx'].to_numpy())
     blue_y = np.interp(x=bin_centers, xp=df['MCS_time'].to_numpy(), fp=df['blue_LEDy'].to_numpy())
 
+    # Constrain values to image limits (we don't yet know how to manage missing data)
+    blue_x = np.clip(blue_x, 0, 640)
+    blue_y = np.clip(blue_y, 0, 480)
+
     return blue_x, blue_y
 
 
@@ -170,6 +176,29 @@ def build_sync_model(X, Y):
 
 ######################################
 ### Session handling
+def crop_data_to_around_events(events, variables, spike_counts, bin_width):
+    """ Crop data to within the first and last event 
+     (avoids a lot of the noise at the start and end of the experiment, as 
+     well as any lack of overlap between tracking data and MCS recording)
+    """
+
+    # Flag event samples
+    idx = np.where(events == 1)[0]
+
+    # Include a buffer of 1.2 seconds (for convolution with kernel)
+    buffer_samps = int(np.round(1.2/bin_width))     
+
+    # Make sure start and end indices fall within data
+    start_idx = min([idx.min()-buffer_samps, 0])
+    end_idx = min([idx.max()+buffer_samps, spike_counts.shape[0]])
+
+    # Filter
+    variables = variables[start_idx:end_idx,:]
+    spike_counts = spike_counts[start_idx:end_idx,:]
+
+    return variables, spike_counts
+
+
 def process_session(session:Path, bin_width):
     """ Apply all preprocessing steps to data from a single recording session """
     
@@ -202,12 +231,7 @@ def process_session(session:Path, bin_width):
     variables[:, 1] = blue_y
     variables[:, 2] = events
 
-    # Crop data to within the first and last event 
-    # (avoids a lot of the noise at the start and end of the experiment, as 
-    # well as any lack of overlap between tracking data and MCS recording)
-    idx = np.where(events == 1)[0]
-    variables = variables[idx.min():idx.max(),:]
-    spike_counts = spike_counts[idx.min():idx.max(),:]
+    # variables, spike_counts = crop_data_to_around_events(events, variables, spike_counts, bin_width)
     
     # Save for processing in Docker
     output_file = session / 'example_pgam_data.npz'
@@ -276,7 +300,7 @@ def concat_sessions(data_dir, npz_files):
 
 ###############################
 # configuration
-def creat_configuration(order:int, bin_width:float):
+def prepare_configuration(order:int, bin_width:float):
     """ 
     
     Args:
@@ -285,12 +309,18 @@ def creat_configuration(order:int, bin_width:float):
     
      """
 
+    x_knots = np.hstack(([0]*(order-1), np.linspace(0,640,15),[640]*(order-1)))
+    x_knots = [float(k) for k in x_knots]
+
+    y_knots = np.hstack(([0]*(order-1), np.linspace(0,480,15),[480]*(order-1)))
+    y_knots = [float(k) for k in y_knots]
+
     return {
-        'blue_x' : {
+        'Blue_X' : {
             'lam':10, 
             'penalty_type': 'der', 
             'der': 2, 
-            'knots': knots,
+            'knots': x_knots,
             'order': order,
             'is_temporal_kernel': False,
             'is_cyclic': [False],
@@ -299,11 +329,11 @@ def creat_configuration(order:int, bin_width:float):
             'kernel_direction': np.nan,
             'samp_period':bin_width 
         },
-        'blue_y' : {
+        'Blue_Y' : {
             'lam':10, 
             'penalty_type': 'der', 
             'der': 2, 
-            'knots': knots,
+            'knots': y_knots,
             'order':order,
             'is_temporal_kernel': False,
             'is_cyclic': [False],
@@ -312,7 +342,7 @@ def creat_configuration(order:int, bin_width:float):
             'kernel_direction': np.nan,
             'samp_period':bin_width 
         },
-        'click_sounds':
+        'events':           # click sounds
         {
             'lam':10,
             'penalty_type':'der',
@@ -368,13 +398,11 @@ def main():
 
     # Prepare configuration (I have no idea what the hell I'm doing)
     order = 4   # the order of the spline is the number of coefficient of the polynomials
-    
-    knots = np.hstack(([-5]*(order-1), np.linspace(-5,5,15),[5]*(order-1)))
-    knots = [float(k) for k in knots]
 
-    cov_dict = prepare_config(order, bin_width)
+    cov_dict = prepare_configuration(order, bin_width)
+    config_path = data_path / 'config_example_data.yml'
 
-    with open('config_example_data.yml', 'w') as outfile:
+    with open(config_path, 'w') as outfile:
         yaml.dump(cov_dict, outfile, default_flow_style=False)
 
 if __name__ == '__main__':
