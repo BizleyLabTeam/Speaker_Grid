@@ -146,6 +146,23 @@ def process_headtrack(session:Path, sync_mdl, bin_width, n_timepoints):
     track_file = next( session.rglob('*DLC*.csv'))
     df = utils.read_deeplabcut_csv(session / 'LEDs', track_file.name)
 
+    # Remove values with low likelihoods
+    likelihood_threshold = 0.6
+    idx = df[df['blue_LEDlikelihood'] < likelihood_threshold].index
+
+    df.loc[idx, 'blue_LEDx'] = np.nan
+    df.loc[idx, 'blue_LEDy'] = np.nan
+
+    # Interpolate missing values
+    df['blue_LEDx'].interpolate(method='nearest', inplace=True)
+    df['blue_LEDy'].interpolate(method='nearest', inplace=True)
+
+    # Mask bins where the animal is tracked while being placed in the box
+    idx = df[df['blue_LEDx'] > 440].index
+
+    df.loc[idx, 'blue_LEDx'] = np.nan
+    df.loc[idx, 'blue_LEDy'] = np.nan
+
     # Predict MCS times from frame numbers
     Xnew = df.index.to_numpy()
     Xnew = sm.add_constant(Xnew)
@@ -160,8 +177,9 @@ def process_headtrack(session:Path, sync_mdl, bin_width, n_timepoints):
     blue_y = np.interp(x=bin_centers, xp=df['MCS_time'].to_numpy(), fp=df['blue_LEDy'].to_numpy())
 
     # Constrain values to image limits (we don't yet know how to manage missing data)
-    blue_x = np.clip(blue_x, 0, 640)
+    blue_x = np.clip(blue_x, 0, 440)
     blue_y = np.clip(blue_y, 0, 480)
+
 
     return blue_x, blue_y
 
@@ -309,7 +327,7 @@ def prepare_configuration(order:int, bin_width:float):
     
      """
 
-    x_knots = np.hstack(([0]*(order-1), np.linspace(0,640,15),[640]*(order-1)))
+    x_knots = np.hstack(([160]*(order-1), np.linspace(160,440,15),[440]*(order-1)))
     x_knots = [float(k) for k in x_knots]
 
     y_knots = np.hstack(([0]*(order-1), np.linspace(0,480,15),[480]*(order-1)))
@@ -351,9 +369,9 @@ def prepare_configuration(order:int, bin_width:float):
             'order':order,
             'is_temporal_kernel': True,
             'is_cyclic': [False],
-            'knots_num': 10,
-            'kernel_length': 500,
-            'kernel_direction': 1,          # We expect sounds to elicit spikes, not the other way round (which would be -1)
+            'knots_num': 20,
+            'kernel_length': 100,
+            'kernel_direction': 0,
             'samp_period':bin_width 
         },
         'neuron_A':
