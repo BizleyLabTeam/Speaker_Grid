@@ -153,9 +153,11 @@ def process_stimuli(stim:pd.DataFrame, bin_width:float, n_timepoints:int) -> np.
     bin_ev[ev_idx] = 1
 
     # Get sound angle w.r.t. head for each event
+    analysis_window = int(np.ceil(50 / bin_width))
+
     h2s_theta = np.full_like(bin_ev, np.nan)
     for idx, val in zip(ev_idx, stim['h2s_theta'].to_numpy()):
-        h2s_theta[idx] = val
+        h2s_theta[idx:idx+analysis_window] = val
     
     # Package event info into one dictionary
     return dict(
@@ -274,13 +276,13 @@ def process_session(session:Path, bin_width):
 
     events = process_stimuli(stim, bin_width, n_timepoints)
 
-    variable_names = ['Blue_X', 'Blue_Y', 'events']
+    variable_names = ['Blue_X', 'Blue_Y', 'events', 'h2s_theta']
     variables = np.zeros((n_timepoints, len(variable_names)))
 
     variables[:, 0] = blue_x
     variables[:, 1] = blue_y
     variables[:, 2] = events['binary']
-    # variables[:, 3] = events['h2s_theta']
+    variables[:, 3] = events['h2s_theta']
 
     trial_ids = get_trial_ids(stim, bin_width, n_timepoints)
 
@@ -370,6 +372,9 @@ def prepare_configuration(order:int, bin_width:float):
     y_knots = np.hstack(([0]*(order-1), np.linspace(0,480,15),[480]*(order-1)))
     y_knots = [float(k) for k in y_knots]
 
+    angle_knots = np.linspace(-np.pi, np.pi, 7)
+    angle_knots = [float(k) for k in angle_knots]
+
     return {
         'Blue_X' : {
             'lam':10, 
@@ -409,6 +414,20 @@ def prepare_configuration(order:int, bin_width:float):
             'knots_num': 20,
             'kernel_length': 100,
             'kernel_direction': 0,
+            'samp_period':bin_width 
+        },
+        'h2s_theta':           # sound angle w.r.t. head
+        {
+            'lam':10,
+            'penalty_type':'der',
+            'der': 2,
+            'knots': angle_knots,
+            'order': order,
+            'is_temporal_kernel': False,
+            'is_cyclic': [True],
+            'knots_num': np.nan,
+            'kernel_length': np.nan,
+            'kernel_direction': np.nan,
             'samp_period':bin_width 
         },
         'neuron_A':
