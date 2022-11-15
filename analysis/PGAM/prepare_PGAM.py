@@ -188,11 +188,11 @@ def process_headtrack(session:Path, sync_mdl, bin_width, n_timepoints):
     df['blue_LEDx'].interpolate(method='nearest', inplace=True)
     df['blue_LEDy'].interpolate(method='nearest', inplace=True)
 
-    # Mask bins where the animal is tracked while being placed in the box
-    idx = df[df['blue_LEDx'] > 440].index
+    # # Mask bins where the animal is tracked while being placed in the box
+    # idx = df[df['blue_LEDx'] > 440].index
 
-    df.loc[idx, 'blue_LEDx'] = np.nan
-    df.loc[idx, 'blue_LEDy'] = np.nan
+    # df.loc[idx, 'blue_LEDx'] = np.nan
+    # df.loc[idx, 'blue_LEDy'] = np.nan
 
     # Predict MCS times from frame numbers
     Xnew = df.index.to_numpy()
@@ -238,7 +238,7 @@ def crop_data_to_around_events(events, bin_width, variables, trial_ids, spike_co
     buffer_samps = int(np.round(1.2/bin_width))     
 
     # Make sure start and end indices fall within data
-    start_idx = min([idx.min()-buffer_samps, 0])
+    start_idx = max([idx.min()-buffer_samps, 0])
     end_idx = min([idx.max()+buffer_samps, spike_counts.shape[0]])
 
     # Filter
