@@ -18,26 +18,6 @@ plt.rc('ytick', labelsize=fontsize) #fontsize of the y tick labels
 plt.rc('legend', fontsize=fontsize) #fontsize of the legend
 
 
-
-def get_quick_PSTH(counts, ev_idx, n_bins:int=100):
-    """ Quick and dirty sampling of spike counts around time of events
-    
-    Forced time window: 50% before and 50% after event
-
-    Returns:
-        Mean spike count across events
-    """
-
-    offset = int(n_bins / 2)
-    psth = np.zeros((len(ev_idx), n_bins))
-
-    # For each stimulus, sample counts
-    for i, ev in enumerate(ev_idx):
-        psth[i,:] = counts[ev-offset:ev+offset]
-
-    return psth.mean(axis=0)
-
-
 def plot_positions(x, y):
 
     # Create canvas
