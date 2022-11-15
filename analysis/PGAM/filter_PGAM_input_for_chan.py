@@ -15,7 +15,7 @@ import numpy as np
 
  # Settings
 ferret = 'F1901_Crumble'
-channel = 'A12'     # A = left, B = right hemisphere
+channel = 'A25'     # A = left, B = right hemisphere
 
 # Paths
 data_path = Path.cwd() / 'data' / f"{ferret}_Squid"

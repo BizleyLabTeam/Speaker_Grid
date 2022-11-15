@@ -101,19 +101,22 @@ def count_spikes(file_path:Path, bin_width:float) -> np.array:
 ####################################
 # Stimulus handling
 
-def process_stimuli(stim:pd.DataFrame, bin_width:float, n_timepoints:int) -> np.array:
-    """ Return binary signal indicating presence of stimulus
-    
-    TO DO: Expand to consider sound location relative to head / the world
-     """
+def get_trial_ids(stim:pd.DataFrame, bin_width:float, n_timepoints:int) -> np.array:
+    """ Create array indicating trial number
+     (This isn't strictly relevant to this project, but we'll use the block to make it work)
 
-    # Create binary array indicating presence of sound
-    events = np.zeros(n_timepoints)
-    ev_idx = np.floor( stim['MCS_Time'].to_numpy() / bin_width)
-    events[ev_idx.astype(int)] = 1
+    Args:
+        stim: dataframe containing stimulus data with 'Block' column indicating a grouping in time
+        bin_width: sample interval
+        n_timepoints: sample number
 
-    # Create array indicating trial number
-    # (This isn't strictly relevant here, but we'll use the block to make it work)
+    Returns:
+        trial_ids: np array with length n_timepoints, should look like a staircase when plotted 
+
+    >>> trial_ids = get_trial_ids(stim, bin_width, n_timepoints)
+    """
+
+    # Get time of last stimulus within block, to use as end time
     blocks = (
         stim
         .groupby('Block')
@@ -122,15 +125,43 @@ def process_stimuli(stim:pd.DataFrame, bin_width:float, n_timepoints:int) -> np.
         .assign(end_idx = lambda x: np.floor(x.end/bin_width))
     )
 
+    # Get end time of last block, to use as start time for next block (start at zero)
     blocks['start_idx'] = blocks['end_idx'].shift(1, fill_value=0)
 
-    trial_ids = np.zeros(n_timepoints)              # Fill array with block numbers
+    # Create an array filled with block numbers, based on block start and end times
+    trial_ids = np.zeros(n_timepoints)              
     for block_num, b in blocks.iterrows():
         trial_ids[b.start_idx.astype(int) : b.end_idx.astype(int)] = block_num
 
+    # Fill any timepoints after final end time with the last block
     trial_ids[b.end_idx.astype(int):] = block_num
 
-    return events, trial_ids
+    return trial_ids
+
+
+def process_stimuli(stim:pd.DataFrame, bin_width:float, n_timepoints:int) -> np.array:
+    """ Return binary signal indicating presence of stimulus
+    
+    TO DO: Expand to consider sound location relative to head / the world
+     """
+
+    # Create binary array indicating presence of sound
+    ev_idx = np.floor( stim['MCS_Time'].to_numpy() / bin_width)
+    ev_idx = ev_idx.astype(int)
+
+    bin_ev = np.zeros(n_timepoints)
+    bin_ev[ev_idx] = 1
+
+    # Get sound angle w.r.t. head for each event
+    h2s_theta = np.full_like(bin_ev, np.nan)
+    for idx, val in zip(ev_idx, stim['h2s_theta'].to_numpy()):
+        h2s_theta[idx] = val
+    
+    # Package event info into one dictionary
+    return dict(
+        binary = bin_ev,
+        h2s_theta = h2s_theta
+    )
 
 
 #####################################
@@ -180,12 +211,12 @@ def process_headtrack(session:Path, sync_mdl, bin_width, n_timepoints):
     blue_x = np.clip(blue_x, 0, 440)
     blue_y = np.clip(blue_y, 0, 480)
 
-
     return blue_x, blue_y
 
 
 def build_sync_model(X, Y):
-    """ Build a simple linear model of form y = ax + b """
+    """ Build a simple linear model of form y = ax + b for estimating
+    MCS time from video time """
     
     X = sm.add_constant(X)
     model = sm.OLS(Y,X)
@@ -194,7 +225,7 @@ def build_sync_model(X, Y):
 
 ######################################
 ### Session handling
-def crop_data_to_around_events(events, variables, spike_counts, bin_width):
+def crop_data_to_around_events(events, bin_width, variables, trial_ids, spike_counts):
     """ Crop data to within the first and last event 
      (avoids a lot of the noise at the start and end of the experiment, as 
      well as any lack of overlap between tracking data and MCS recording)
@@ -212,9 +243,10 @@ def crop_data_to_around_events(events, variables, spike_counts, bin_width):
 
     # Filter
     variables = variables[start_idx:end_idx,:]
+    trial_ids = trial_ids[start_idx:end_idx]
     spike_counts = spike_counts[start_idx:end_idx,:]
 
-    return variables, spike_counts
+    return variables, trial_ids, spike_counts
 
 
 def process_session(session:Path, bin_width):
@@ -223,7 +255,7 @@ def process_session(session:Path, bin_width):
     # Load stimulus times according to different clocks 
     # (i.e. the timeline compatible with spike times)
     stim_file = next(session.glob('*Stim_LED_MCS.csv'))
-    stim = pd.read_csv(stim_file, usecols=['MCS_Time','closest_frame','Block'])    
+    stim = pd.read_csv(stim_file, usecols=['MCS_Time','closest_frame','Block','h2s_theta'])    
 
     # Build linear regression model that takes frame number as input and returns
     # estimated time on MCS clock (for which spike times are referenced)
@@ -236,20 +268,25 @@ def process_session(session:Path, bin_width):
 
     # Build variables from input features
     #   numpy.array of dim (T x M), T as above, M the number of task variables
-    variable_names = ['Blue_X', 'Blue_Y', 'events']
     n_timepoints = spike_counts.shape[0]
-    
-    variables = np.zeros((n_timepoints, len(variable_names)))
     
     blue_x, blue_y = process_headtrack(session, sync_mdl, bin_width, n_timepoints)
 
-    events, trial_ids = process_stimuli(stim, bin_width, n_timepoints)
+    events = process_stimuli(stim, bin_width, n_timepoints)
+
+    variable_names = ['Blue_X', 'Blue_Y', 'events']
+    variables = np.zeros((n_timepoints, len(variable_names)))
 
     variables[:, 0] = blue_x
     variables[:, 1] = blue_y
-    variables[:, 2] = events
+    variables[:, 2] = events['binary']
+    # variables[:, 3] = events['h2s_theta']
 
-    # variables, spike_counts = crop_data_to_around_events(events, variables, spike_counts, bin_width)
+    trial_ids = get_trial_ids(stim, bin_width, n_timepoints)
+
+    # Crop data to times around events (as this was when the tracking should have worked - no guarentees before or after)
+    variables, trial_ids, spike_counts = crop_data_to_around_events(events['binary'], bin_width,
+        variables, trial_ids, spike_counts)
     
     # Save for processing in Docker
     output_file = session / 'example_pgam_data.npz'
