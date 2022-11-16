@@ -274,10 +274,11 @@ def process_session(session:Path, bin_width):
     #   numpy.array of dim (T x M), T as above, M the number of task variables
     n_trials = data.shape[0]
     
-    variable_names = ['h2s_theta']
+    variable_names = ['h2s_theta','head_angle']
     variables = np.zeros((n_trials, len(variable_names)))
 
     variables[:, 0] = data['h2s_theta'].to_numpy()
+    variables[:, 1] = data['head_angle'].to_numpy()
 
     trial_ids = np.arange(n_trials)
 
@@ -362,6 +363,20 @@ def prepare_configuration(order:int, bin_width:float):
 
     return {
         'h2s_theta':           # sound angle w.r.t. head
+        {
+            'lam':10,
+            'penalty_type':'der',
+            'der': 2,
+            'knots': angle_knots,
+            'order': order,
+            'is_temporal_kernel': False,
+            'is_cyclic': [True],
+            'knots_num': np.nan,
+            'kernel_length': np.nan,
+            'kernel_direction': np.nan,
+            'samp_period':bin_width 
+        },
+        'head_angle':           # sound angle w.r.t. head
         {
             'lam':10,
             'penalty_type':'der',
