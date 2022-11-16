@@ -14,16 +14,23 @@ from pathlib import Path
 import numpy as np
 
  # Settings
+analysis = 'SRF'
 ferret = 'F1901_Crumble'
-channel = 'A25'     # A = left, B = right hemisphere
+channel = 'B09'     # A = left, B = right hemisphere
 
 # Paths
 data_path = Path.cwd() / 'data' / f"{ferret}_Squid"
 
-all_chan_file = data_path / 'example_pgam_concatn.npz'
+file_name_options = {                       # File name depends on which analysis we're doing
+    'Legacy': 'example_pgam_concatn.npz',
+    'SRF': 'SRF_pgam_concatn.npz',
+    'Temporal': 'NOT_IMPLEMENTED_YET'
+}
+
+input_file =  file_name_options[analysis]
 
 # Load data
-data = np.load(all_chan_file, allow_pickle=True)
+data = np.load(data_path / input_file, allow_pickle=True)
 
 # Get column of index to keep
 idx = np.where(data['neu_names'] == channel)[0][0]
@@ -36,9 +43,10 @@ neu_key = f"neuron_{channel}"
 neu_info = {neu_key:neu_info[channel]}
 
 # Save for processing in Docker
-output_file = data_path / f'example_pgam_{channel}.npz'
+output_name = input_file.replace('concatn',channel)
+
 np.savez(
-    output_file, 
+    data_path / output_name, 
     counts = spike_counts,
     variables = data['variables'],
     variable_names = data['variable_names'],
