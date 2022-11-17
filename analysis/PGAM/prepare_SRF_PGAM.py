@@ -257,6 +257,17 @@ def process_session(session:Path, bin_width):
     data = pd.read_csv(file_path)
     data = data.sort_values(by='EstimatedTimeOut')
 
+    # Transform world-centered speaker positions into angles around the center of the grid
+    center = (
+        np.mean(data.speak_xpix.unique()),
+        np.mean(data.speak_ypix.unique())
+    )
+
+    data['speak_xpix'] -= center[0]
+    data['speak_ypix'] -= center[1]
+
+    data = data.assign(speak_theta = lambda x: np.arctan2(x.speak_ypix, x.speak_xpix))
+
     # Reorganize spike counts into numpy array with intuitive column order 
     n_neurons = 64 
     neu_info, neu_names = dict(), []
@@ -279,6 +290,7 @@ def process_session(session:Path, bin_width):
 
     variables[:, 0] = data['h2s_theta'].to_numpy()
     variables[:, 1] = data['head_angle'].to_numpy()
+    # variables[:, 2] = data['speak_theta'].to_numpy()
 
     trial_ids = np.arange(n_trials)
 
@@ -296,7 +308,6 @@ def process_session(session:Path, bin_width):
     return output_file
     
 
-    
 ################################################
 # Managing multiple sessions
 
@@ -360,6 +371,10 @@ def prepare_configuration(order:int, bin_width:float):
 
     angle_knots = np.linspace(-np.pi, np.pi, 7)
     angle_knots = [float(k) for k in angle_knots]
+
+    # space_knots = np.linspace(85.0, 415, 10)
+    # space_knots = np.hstack(([space_knots[0]]*(order-1), space_knots, [space_knots[-1]]*(order-1)))
+    # space_knots = [float(k) for k in space_knots]
 
     return {
         'h2s_theta':           # sound angle w.r.t. head
