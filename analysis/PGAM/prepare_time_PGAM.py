@@ -24,7 +24,6 @@ import sys
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-import yaml
 
 sys.path.insert(0, str(Path.cwd()))
 from lib import utils
@@ -276,13 +275,10 @@ def process_session(session:Path, bin_width):
 
     events = process_stimuli(stim, bin_width, n_timepoints)
 
-    variable_names = ['Blue_X', 'Blue_Y', 'events', 'h2s_theta']
+    variable_names = ['events']
     variables = np.zeros((n_timepoints, len(variable_names)))
 
-    variables[:, 0] = blue_x
-    variables[:, 1] = blue_y
-    variables[:, 2] = events['binary']
-    variables[:, 3] = events['h2s_theta']
+    variables[:, 0] = events['binary']
 
     trial_ids = get_trial_ids(stim, bin_width, n_timepoints)
 
@@ -291,7 +287,7 @@ def process_session(session:Path, bin_width):
         variables, trial_ids, spike_counts)
     
     # Save for processing in Docker
-    output_file = session / 'example_pgam_data.npz'
+    output_file = session / 'temporal_pgam_data.npz'
     np.savez(
         output_file, 
         counts = spike_counts,
@@ -299,7 +295,8 @@ def process_session(session:Path, bin_width):
         variable_names = variable_names,
         neu_names = neu_names,
         neu_info = neu_info, 
-        trial_ids = trial_ids)
+        trial_ids = trial_ids,
+        bin_width = bin_width)
 
     return output_file
     
@@ -344,7 +341,7 @@ def concat_sessions(data_dir, npz_files):
     trial_ids = np.concatenate(trial_ids)
 
     # Save for processing in Docker
-    output_file = data_dir / 'example_pgam_concatn.npz'
+    output_file = data_dir / 'temporal_pgam_concatn.npz'
     np.savez(
         output_file, 
         counts = counts,
@@ -352,99 +349,10 @@ def concat_sessions(data_dir, npz_files):
         variable_names = variable_names,
         neu_names = neu_names,
         neu_info = neu_info, 
-        trial_ids = trial_ids)
+        trial_ids = trial_ids,
+        bin_width = data['bin_width'])
 
 
-###############################
-# configuration
-def prepare_configuration(order:int, bin_width:float):
-    """ 
-    
-    Args:
-        Order: number of coefficient of the polynomials that make up splines
-        bin_width: sample period in seconds
-    
-     """
-
-    x_knots = np.hstack(([160]*(order-1), np.linspace(160,440,15),[440]*(order-1)))
-    x_knots = [float(k) for k in x_knots]
-
-    y_knots = np.hstack(([0]*(order-1), np.linspace(0,480,15),[480]*(order-1)))
-    y_knots = [float(k) for k in y_knots]
-
-    angle_knots = np.linspace(-np.pi, np.pi, 7)
-    angle_knots = [float(k) for k in angle_knots]
-
-    return {
-        'Blue_X' : {
-            'lam':10, 
-            'penalty_type': 'der', 
-            'der': 2, 
-            'knots': x_knots,
-            'order': order,
-            'is_temporal_kernel': False,
-            'is_cyclic': [False],
-            'knots_num': np.nan,
-            'kernel_length': np.nan,
-            'kernel_direction': np.nan,
-            'samp_period':bin_width 
-        },
-        'Blue_Y' : {
-            'lam':10, 
-            'penalty_type': 'der', 
-            'der': 2, 
-            'knots': y_knots,
-            'order':order,
-            'is_temporal_kernel': False,
-            'is_cyclic': [False],
-            'knots_num': np.nan,
-            'kernel_length': np.nan,
-            'kernel_direction': np.nan,
-            'samp_period':bin_width 
-        },
-        'events':           # click sounds
-        {
-            'lam':10,
-            'penalty_type':'der',
-            'der':2,
-            'knots': np.nan,
-            'order':order,
-            'is_temporal_kernel': True,
-            'is_cyclic': [False],
-            'knots_num': 20,
-            'kernel_length': 100,
-            'kernel_direction': 0,
-            'samp_period':bin_width 
-        },
-        'h2s_theta':           # sound angle w.r.t. head
-        {
-            'lam':10,
-            'penalty_type':'der',
-            'der': 2,
-            'knots': angle_knots,
-            'order': order,
-            'is_temporal_kernel': False,
-            'is_cyclic': [True],
-            'knots_num': np.nan,
-            'kernel_length': np.nan,
-            'kernel_direction': np.nan,
-            'samp_period':bin_width 
-        },
-        'neuron_A':
-        {
-            'lam':10,
-            'penalty_type':'der',
-            'der':2,
-            'knots': np.nan,
-            'order':order,
-            'is_temporal_kernel': True,
-            'is_cyclic': [False],
-            'knots_num': 8,
-            'kernel_length': 201,
-            'kernel_direction': 1,
-            'samp_period':bin_width 
-        }
-    }
 
 ###################
 def main():
@@ -470,14 +378,7 @@ def main():
     # Bring data together from multiple sessions
     concat_sessions(data_path, npz_files)
 
-    # Prepare configuration (I have no idea what the hell I'm doing)
-    order = 4   # the order of the spline is the number of coefficient of the polynomials
 
-    cov_dict = prepare_configuration(order, bin_width)
-    config_path = data_path / 'config_example_data.yml'
-
-    with open(config_path, 'w') as outfile:
-        yaml.dump(cov_dict, outfile, default_flow_style=False)
 
 if __name__ == '__main__':
     main()
