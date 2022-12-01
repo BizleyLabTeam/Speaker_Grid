@@ -46,16 +46,11 @@ def polar_plot(file_path, unit, var, ax, zmax):
     file_name = f"{unit}_{var}.npz"
     res = np.load(file_path / file_name, allow_pickle=True)
 
-    if var == 'SRF':
-        x_firing = res['sound_angle'].tolist()
-    elif var == 'Head_direction':
-        x_firing = res['head_angle'].tolist()
-
     if var == 'Head_direction':
         line_color = 'magenta'
         scat_color = 'green'
     else:
-        line_color = '#1f77b4'
+        line_color = 'orange'
         scat_color = 'orange'
     
     if unit == 'B09':
@@ -63,12 +58,22 @@ def polar_plot(file_path, unit, var, ax, zmax):
     else:
         scat_alpha = 0.3
 
-    y_firing_model = res['y_model'].tolist()
-    raw_theta = res['raw_theta'].tolist()
-    raw_rho = res['raw_rho'].tolist()
+    # Get data from npz array
+    x_model = res['x_model'].tolist()
+    x_raw = res['x_raw'].tolist()
 
-    ax.plot(x_firing, y_firing_model, label='model', color=line_color, lw=1)
-    ax.scatter(raw_theta, raw_rho, s=0.5, alpha=scat_alpha, color=scat_color,label='raw')
+    y_model = res['y_model']
+    y_mdl_err = res['y_err'] / 2.807 
+    y_mdl_err = y_mdl_err * 1.906
+    y_raw = res['y_raw'] 
+
+    # Plot
+    # ax.plot(x_model, y_model, label='model', color='k', lw=1.5)
+    # ax.scatter(raw_theta, raw_rho, s=0.5, alpha=scat_alpha, color=scat_color,label='raw')
+    
+    ax.fill_between(x_model, y_model-y_mdl_err, y_model+y_mdl_err, color=line_color, alpha=0.3)
+    ax.bar(x_raw, y_raw, width=(np.pi/12), bottom=0.0, color='k', alpha=0.75, edgecolor='w', lw=0.3)
+    ax.plot(x_model, y_model, label='model', color=line_color, lw=1.5)
 
     ax.set_rmax(zmax)
     ax.set_rmin(0)
@@ -110,13 +115,13 @@ def main():
 
 
     # intx_axes['A25_to_A22'].yaxis.tick_right()
-    polar_plot(data_path, unit='B09', var='Head_direction', ax=ppax['B09']['HA'], zmax=60)
-    polar_plot(data_path, unit='B13', var='Head_direction', ax=ppax['B13']['HA'], zmax=250)
+    polar_plot(data_path, unit='B09', var='Head_direction', ax=ppax['B09']['HA'], zmax=80)
+    polar_plot(data_path, unit='B13', var='Head_direction', ax=ppax['B13']['HA'], zmax=280)
 
-    polar_plot(data_path, unit='B09', var='SRF', ax=ppax['B09']['srf'], zmax=60)
-    polar_plot(data_path, unit='B13', var='SRF', ax=ppax['B13']['srf'], zmax=250)
+    polar_plot(data_path, unit='B09', var='SRF', ax=ppax['B09']['srf'], zmax=80)
+    polar_plot(data_path, unit='B13', var='SRF', ax=ppax['B13']['srf'], zmax=280)
 
-    plt.savefig('polar_tuning.png', dpi=300)
+    plt.savefig('polar_tuning_v2.png', dpi=300)
     plt.show()
 
 
